@@ -12,7 +12,6 @@ extension EnvironmentValues {
     }
 }
 
-@main
 struct NavigatorWidget: Widget {
     let kind: String = "NavigatorWidget"
 
@@ -46,6 +45,63 @@ struct NavigatorWidget: Widget {
         return []
         #endif
     }
+}
+
+struct GradesWidget: Widget {
+    let kind = "GradesWidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: SnapshotProvider(kind: .grades)) { entry in
+            SnapshotWidgetEntryView(entry: entry)
+        }
+        .configurationDisplayName("Cijfers")
+        .description("Bekijk je recente cijfers en gemiddelde")
+        .supportedFamilies(snapshotWidgetFamilies())
+    }
+}
+
+struct MessagesWidget: Widget {
+    let kind = "MessagesWidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: SnapshotProvider(kind: .messages)) { entry in
+            SnapshotWidgetEntryView(entry: entry)
+        }
+        .configurationDisplayName("Berichten")
+        .description("Bekijk je recente berichten")
+        .supportedFamilies(snapshotWidgetFamilies())
+    }
+}
+
+@main
+struct DiscipulusWidgetBundle: WidgetBundle {
+    var body: some Widget {
+        NavigatorWidget()
+        GradesWidget()
+        MessagesWidget()
+    }
+}
+
+private func snapshotWidgetFamilies() -> [WidgetFamily] {
+    #if os(iOS) || os(macOS)
+    return [
+        .systemSmall,
+        .systemMedium,
+        .systemLarge,
+        .systemExtraLarge,
+        .accessoryCircular,
+        .accessoryInline,
+        .accessoryRectangular
+    ]
+    #elseif os(watchOS)
+    return [
+        .accessoryCircular,
+        .accessoryInline,
+        .accessoryRectangular
+    ]
+    #else
+    return []
+    #endif
 }
 
 struct NavigatorWidget_Previews: PreviewProvider {

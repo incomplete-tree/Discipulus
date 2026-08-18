@@ -23,3 +23,50 @@ struct SimpleEntry: TimelineEntry {
             .sorted { $0.startTime < $1.startTime }
     }
 }
+
+enum SnapshotWidgetKind: String, Equatable {
+    case grades
+    case messages
+
+    var title: String {
+        switch self {
+        case .grades:
+            return "Cijfers"
+        case .messages:
+            return "Berichten"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .grades:
+            return "graduationcap"
+        case .messages:
+            return "envelope"
+        }
+    }
+
+    var route: String {
+        rawValue
+    }
+}
+
+struct GradeSnapshot {
+    let subject: String
+    let grade: String
+}
+
+struct MessageSnapshot {
+    let sender: String
+    let subject: String
+    let isRead: Bool
+}
+
+struct SnapshotEntry: TimelineEntry {
+    let date: Date
+    let kind: SnapshotWidgetKind
+    let grades: [GradeSnapshot]
+    let average: String?
+    let messages: [MessageSnapshot]
+    let unreadMessages: Int
+}

@@ -106,3 +106,64 @@ struct Provider: AppIntentTimelineProvider {
 
     }
 }
+
+struct SnapshotProvider: TimelineProvider {
+    let kind: SnapshotWidgetKind
+
+    func placeholder(in context: Context) -> SnapshotEntry {
+        SnapshotEntry(
+            date: Date(),
+            kind: kind,
+            grades: [],
+            average: nil,
+            messages: [],
+            unreadMessages: 0
+        )
+    }
+
+    func getSnapshot(in context: Context, completion: @escaping (SnapshotEntry) -> Void) {
+        completion(loadSnapshot())
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<SnapshotEntry>) -> Void) {
+        let entry = loadSnapshot()
+        completion(
+            Timeline(
+                entries: [entry],
+                policy: .after(Date().addingTimeInterval(30 * 60))
+            )
+        )
+    }
+
+    private func loadSnapshot() -> SnapshotEntry {
+        let sharedDefaults = UserDefaults(suiteName: "group.DUGUWCFH8P.dev.harrydekat.discipulus")
+        let grades = (sharedDefaults?.array(forKey: "grades") ?? []).compactMap { item -> GradeSnapshot? in
+            guard let item = item as? [String: Any] else { return nil }
+            return GradeSnapshot(
+                subject: (item["subject"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "Vak",
+                grade: (item["grade"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "-"
+            )
+        }
+        let messages = (sharedDefaults?.array(forKey: "messages") ?? []).compactMap { item -> MessageSnapshot? in
+            guard let item = item as? [String: Any] else { return nil }
+            return MessageSnapshot(
+                sender: (item["sender"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "Bericht",
+                subject: (item["subject"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "Zonder onderwerp",
+                isRead: item["read"] as? Bool ?? true
+            )
+        }
+        let average = sharedDefaults?.string(forKey: "grades_average")?.isEmpty == false
+            ? sharedDefaults?.string(forKey: "grades_average")
+            : nil
+        let unreadMessages = Int(sharedDefaults?.string(forKey: "messages_unread") ?? "") ?? 0
+
+        return SnapshotEntry(
+            date: Date(),
+            kind: kind,
+            grades: grades,
+            average: average,
+            messages: messages,
+            unreadMessages: unreadMessages
+        )
+    }
+}
