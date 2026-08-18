@@ -111,142 +111,195 @@ class BackgroundRefresh {
 
   /// Updates the native widgets for the activeProfile.
   static Future<void> updateWidgets() async {
-    if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
-      final profileUUID =
-          appSettings.activeProfileUuidWidgets ?? appSettings.activeProfileUuid;
-      final profile = profileUUID == null
-          ? await isar.profiles.filter().not().accountIsNull().findFirst()
-          : await isar.profiles.filter().uuidEqualTo(profileUUID).findFirst();
-      final List<CalendarEvent> events = profile == null
-          ? []
-          : await profile.calendarEvents
-              .filter()
-              .startGreaterThan(
-                DateTime.now().subtract(const Duration(days: 1)),
-              )
-              .eindeLessThan(DateTime.now().add(const Duration(days: 28)))
-              .sortByStart()
-              .limit(40)
-              .findAll();
-      await HomeWidget.saveWidgetData<List<Map<String, dynamic>>>(
-        'events',
-        events
-            .where((e) => !e.isCanceled) // filter cancelled lessons
-            .combineEvents()
-            .map(
-              (e) => {
-                'id': e.first.id,
-                'name': e.first.title,
-                'shortName': e.first.subject.value?.afkorting,
-                'location': e.first.lokatie?.nullOnEmpty,
-                'startHourIndicator': e.first.lesuurVan,
-                'endHourIndicator': e.last.lesuurTotMet,
-                'infoType': e.first.infoType.index,
-                'startTime': e.first.start.millisecondsSinceEpoch,
-                'endTime': e.last.einde.millisecondsSinceEpoch,
-                'isCompleted': e.first.afgerond,
-              }..removeWhere((key, value) => value == null),
-            )
-            .toList(),
-      );
-
-      final schoolyear = profile == null
-          ? null
-          : await profile.schoolyears.filter().sortByEindeDesc().findFirst();
-      final grades = schoolyear == null
-          ? <Grade>[]
-          : await schoolyear.grades
-              .filter()
-              .useable()
-              .sortByDatumIngevoerdDesc()
-              .thenById()
-              .limit(3)
-              .findAll();
-      final allGrades = schoolyear == null
-          ? <Grade>[]
-          : await schoolyear.grades.filter().useable().findAll();
-      final average = allGrades.isEmpty ? null : allGrades.average;
-      await HomeWidget.saveWidgetData<List<Map<String, dynamic>>>(
-        'grades',
-        grades
-            .map(
-              (grade) => {
-                'subject': grade.subject.value?.afkorting ??
-                    grade.subject.value?.naam ??
-                    'Vak',
-                'grade': grade.cijferStr ?? '-',
-                'date': grade.datumIngevoerd?.millisecondsSinceEpoch,
-              }..removeWhere((key, value) => value == null),
-            )
-            .toList(),
-      );
-      await HomeWidget.saveWidgetData<String>(
-        'grades_average',
-        average != null && average.isFinite ? average.toStringAsFixed(1) : '',
-      );
-
-      final inbox = profile == null
-          ? null
-          : await profile.berichtMappen.filter().idEqualTo(1).findFirst();
-      final messages = inbox == null
-          ? <Bericht>[]
-          : await inbox.berichten
-              .filter()
-              .sortByVerzondenOpDesc()
-              .limit(3)
-              .findAll();
-      await HomeWidget.saveWidgetData<List<Map<String, dynamic>>>(
-        'messages',
-        messages
-            .map(
-              (message) => {
-                'sender': message.afzender?.naam ?? 'Bericht',
-                'subject': message.onderwerp ?? 'Zonder onderwerp',
-                'read': message.isGelezen,
-                'date': message.verzondenOp.millisecondsSinceEpoch,
-              },
-            )
-            .toList(),
-      );
-      await HomeWidget.saveWidgetData<String>(
-        'messages_unread',
-        (inbox?.aantalOngelezen ?? 0).toString(),
-      );
-
-      if (Platform.isAndroid) {
-        await HomeWidget.updateWidget(
-          name: "EventWidgetProvider",
-          androidName: "NavigatorWidgetProvider",
-          qualifiedAndroidName:
-              "dev.harrydekat.discipulus.NavigatorWidgetProvider",
-        );
-        await HomeWidget.updateWidget(
-          name: "GradesWidgetProvider",
-          androidName: "GradesWidgetProvider",
-          qualifiedAndroidName:
-              "dev.harrydekat.discipulus.GradesWidgetProvider",
-        );
-        await HomeWidget.updateWidget(
-          name: "MessagesWidgetProvider",
-          androidName: "MessagesWidgetProvider",
-          qualifiedAndroidName:
-              "dev.harrydekat.discipulus.MessagesWidgetProvider",
-        );
-      } else {
-        await HomeWidget.updateWidget(
-          name: "EventWidgetProvider",
-          iOSName: "NavigatorWidget",
-        );
-        await HomeWidget.updateWidget(
-          name: "GradesWidget",
-          iOSName: "GradesWidget",
-        );
-        await HomeWidget.updateWidget(
-          name: "MessagesWidget",
-          iOSName: "MessagesWidget",
-        );
-      }
+    if (!(Platform.isAndroid ||
+        Platform.isIOS ||
+        Platform.isMacOS ||
+        Platform.isLinux)) {
+      return;
     }
+
+    final profileUUID =
+        appSettings.activeProfileUuidWidgets ?? appSettings.activeProfileUuid;
+    final profile = profileUUID == null
+        ? await isar.profiles.filter().not().accountIsNull().findFirst()
+        : await isar.profiles.filter().uuidEqualTo(profileUUID).findFirst();
+    final List<CalendarEvent> events = profile == null
+        ? []
+        : await profile.calendarEvents
+            .filter()
+            .startGreaterThan(
+              DateTime.now().subtract(const Duration(days: 1)),
+            )
+            .eindeLessThan(DateTime.now().add(const Duration(days: 28)))
+            .sortByStart()
+            .limit(40)
+            .findAll();
+    final eventSnapshot = events
+        .where((e) => !e.isCanceled) // filter cancelled lessons
+        .combineEvents()
+        .map(
+          (e) => {
+            'id': e.first.id,
+            'name': e.first.title,
+            'shortName': e.first.subject.value?.afkorting,
+            'location': e.first.lokatie?.nullOnEmpty,
+            'startHourIndicator': e.first.lesuurVan,
+            'endHourIndicator': e.last.lesuurTotMet,
+            'infoType': e.first.infoType.index,
+            'startTime': e.first.start.millisecondsSinceEpoch,
+            'endTime': e.last.einde.millisecondsSinceEpoch,
+            'isCompleted': e.first.afgerond,
+          }..removeWhere((key, value) => value == null),
+        )
+        .toList();
+
+    final schoolyear = profile == null
+        ? null
+        : await profile.schoolyears.filter().sortByEindeDesc().findFirst();
+    final grades = schoolyear == null
+        ? <Grade>[]
+        : await schoolyear.grades
+            .filter()
+            .useable()
+            .sortByDatumIngevoerdDesc()
+            .thenById()
+            .limit(3)
+            .findAll();
+    final allGrades = schoolyear == null
+        ? <Grade>[]
+        : await schoolyear.grades.filter().useable().findAll();
+    final average = allGrades.isEmpty ? null : allGrades.average;
+    final gradeSnapshot = grades
+        .map(
+          (grade) => {
+            'subject': grade.subject.value?.afkorting ??
+                grade.subject.value?.naam ??
+                'Vak',
+            'grade': grade.cijferStr ?? '-',
+            'date': grade.datumIngevoerd?.millisecondsSinceEpoch,
+          }..removeWhere((key, value) => value == null),
+        )
+        .toList();
+    final gradeAverage =
+        average != null && average.isFinite ? average.toStringAsFixed(1) : '';
+
+    final inbox = profile == null
+        ? null
+        : await profile.berichtMappen.filter().idEqualTo(1).findFirst();
+    final messages = inbox == null
+        ? <Bericht>[]
+        : await inbox.berichten
+            .filter()
+            .sortByVerzondenOpDesc()
+            .limit(3)
+            .findAll();
+    final messageSnapshot = messages
+        .map(
+          (message) => {
+            'sender': message.afzender?.naam ?? 'Bericht',
+            'subject': message.onderwerp ?? 'Zonder onderwerp',
+            'read': message.isGelezen,
+            'date': message.verzondenOp.millisecondsSinceEpoch,
+          },
+        )
+        .toList();
+    final messagesUnread = inbox?.aantalOngelezen ?? 0;
+
+    if (Platform.isLinux) {
+      await _writeLinuxWidgetSnapshot(
+        events: eventSnapshot,
+        grades: gradeSnapshot,
+        gradesAverage: gradeAverage,
+        messages: messageSnapshot,
+        messagesUnread: messagesUnread,
+      );
+      return;
+    }
+
+    await HomeWidget.saveWidgetData<List<Map<String, dynamic>>>(
+      'events',
+      eventSnapshot,
+    );
+    await HomeWidget.saveWidgetData<List<Map<String, dynamic>>>(
+      'grades',
+      gradeSnapshot,
+    );
+    await HomeWidget.saveWidgetData<String>('grades_average', gradeAverage);
+    await HomeWidget.saveWidgetData<List<Map<String, dynamic>>>(
+      'messages',
+      messageSnapshot,
+    );
+    await HomeWidget.saveWidgetData<String>(
+      'messages_unread',
+      messagesUnread.toString(),
+    );
+
+    if (Platform.isAndroid) {
+      await HomeWidget.updateWidget(
+        name: "EventWidgetProvider",
+        androidName: "NavigatorWidgetProvider",
+        qualifiedAndroidName:
+            "dev.harrydekat.discipulus.NavigatorWidgetProvider",
+      );
+      await HomeWidget.updateWidget(
+        name: "GradesWidgetProvider",
+        androidName: "GradesWidgetProvider",
+        qualifiedAndroidName: "dev.harrydekat.discipulus.GradesWidgetProvider",
+      );
+      await HomeWidget.updateWidget(
+        name: "MessagesWidgetProvider",
+        androidName: "MessagesWidgetProvider",
+        qualifiedAndroidName:
+            "dev.harrydekat.discipulus.MessagesWidgetProvider",
+      );
+    } else {
+      await HomeWidget.updateWidget(
+        name: "EventWidgetProvider",
+        iOSName: "NavigatorWidget",
+      );
+      await HomeWidget.updateWidget(
+        name: "GradesWidget",
+        iOSName: "GradesWidget",
+      );
+      await HomeWidget.updateWidget(
+        name: "MessagesWidget",
+        iOSName: "MessagesWidget",
+      );
+    }
+  }
+
+  static Future<void> _writeLinuxWidgetSnapshot({
+    required List<Map<String, dynamic>> events,
+    required List<Map<String, dynamic>> grades,
+    required String gradesAverage,
+    required List<Map<String, dynamic>> messages,
+    required int messagesUnread,
+  }) async {
+    final configuredDataHome = Platform.environment['XDG_DATA_HOME'];
+    final home = Platform.environment['HOME'] ?? Directory.current.path;
+    final dataHome = configuredDataHome?.isNotEmpty == true
+        ? configuredDataHome!
+        : '$home${Platform.pathSeparator}.local${Platform.pathSeparator}share';
+    final directory = Directory(
+      '$dataHome${Platform.pathSeparator}discipulus',
+    );
+    await directory.create(recursive: true);
+
+    final snapshotFile = File(
+      '${directory.path}${Platform.pathSeparator}widget-snapshot.json',
+    );
+    final temporaryFile = File('${snapshotFile.path}.tmp');
+    await temporaryFile.writeAsString(
+      jsonEncode({
+        'updatedAt': DateTime.now().toIso8601String(),
+        'events': events,
+        'grades': grades,
+        'gradesAverage': gradesAverage,
+        'messages': messages,
+        'messagesUnread': messagesUnread,
+      }),
+    );
+    await temporaryFile.rename(snapshotFile.path);
   }
 }
 
