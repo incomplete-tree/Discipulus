@@ -79,8 +79,7 @@ class BackgroundRefresh {
           _quickRefreshGrades(profile, enableNotifcations),
 
         // Refresh calendar events (oncoming two weeks)
-        if (profile.settings.eventsNotifications)
-          _quickRefreshCalendar(profile, enableNotifcations),
+        _quickRefreshCalendar(profile, enableNotifcations),
 
         if (profile.settings.remindNotifications) scheduleReminders(profile)
       ]);
