@@ -61,6 +61,10 @@ remote push was made.
 - The CI and release workflows parse as YAML, use the public repositories only,
   configure both Android SDK and Flutter paths, and require production signing
   secrets for a release.
+- The README rules were rechecked against the source tree: no local Maven
+  repository entries remain, `android/local.properties` is ignored, generated
+  artifacts are ignored, public dependency sources are used, and production
+  signing is required by CI.
 
 ## Environment-limited checks
 
@@ -78,8 +82,11 @@ remote push was made.
   Android builds passed with JDK 21. CI explicitly pins Temurin JDK 17.
 - The current branch is `feature/wear-tiles`, stacked on
   `feature/widgets-kde`, `feature/widgets-apple`, `feature/widgets-android`,
-  and `handoff/fix-wear-sync`. The upstream comparison was made against
-  `upstream/main` at the handoff snapshot; no branch was pushed.
+  and `handoff/fix-wear-sync`. After refreshing
+  `https://github.com/DiscipulusApp/Discipulus`, `upstream/main` is
+  `bed89034a2de2cb92f6ff41467583349d8d7ab9d`; this stack is 0 commits behind
+  and 7 commits ahead, with 93 intentional changed files. The original
+  no-ancestor local refs are preserved as `backup/*`; no branch was pushed.
 
 The active watch used in the earlier sync handoff is not currently reachable:
 ADB reports no connected device and reconnecting its previous network endpoint
