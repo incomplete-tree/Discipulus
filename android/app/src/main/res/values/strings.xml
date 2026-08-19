@@ -1,3 +1,6 @@
 <resources>
     <string name="widget_description">Zie waar je volgende les of lessen zijn</string>
+    <string name="widget_event_indicator">Type van de volgende les</string>
+    <string name="grades_widget_description">Bekijk je recente cijfers</string>
+    <string name="messages_widget_description">Bekijk je recente berichten</string>
 </resources>

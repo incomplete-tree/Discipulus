@@ -356,6 +356,23 @@ class Intents {
             );
           }
         }
+      } else if (uri.host == "grades" || uri.host == "messages") {
+        final label = uri.host == "grades" ? "Recente cijfers" : "Berichten";
+        Destination? destination;
+        for (final segment in destinations(
+          activeProfile.account.value!.permissions,
+        )) {
+          for (final candidate in segment.destinations) {
+            if (candidate.label == label) {
+              destination = candidate;
+              break;
+            }
+          }
+          if (destination != null) break;
+        }
+        if (destination != null) {
+          Layout.of(navKey.currentContext!)?.goToPage(destination.view);
+        }
       }
     } else if (Platform.isAndroid || Platform.isIOS) {
       final handler = ShareHandlerPlatform.instance;
