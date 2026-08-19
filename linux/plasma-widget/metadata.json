@@ -1,0 +1,14 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [{ "Email": "", "Name": "Discipulus" }],
+        "Category": "Education",
+        "Description": "Calendar, grades, and messages from Discipulus",
+        "Icon": "view-calendar",
+        "Id": "dev.harrydekat.discipulus.widget",
+        "License": "GPL-3.0-or-later",
+        "Name": "Discipulus school widget",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

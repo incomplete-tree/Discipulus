@@ -107,13 +107,21 @@ class BackgroundRefresh {
 
   /// Updates the native widgets for the activeProfile.
   static Future<void> updateWidgets() async {
-    int profileUUID =
-        appSettings.activeProfileUuidWidgets ?? activeProfile.uuid;
-    if ((Platform.isIOS || Platform.isMacOS)) {
-      List<CalendarEvent> events = await (await isar.profiles
-              .filter()
-              .uuidEqualTo(profileUUID)
-              .findFirst())!
+    if (!(Platform.isAndroid ||
+        Platform.isIOS ||
+        Platform.isMacOS ||
+        Platform.isLinux)) {
+      return;
+    }
+
+    final profileUUID =
+        appSettings.activeProfileUuidWidgets ?? appSettings.activeProfileUuid;
+    final profile = profileUUID == null
+        ? await isar.profiles.filter().not().accountIsNull().findFirst()
+        : await isar.profiles.filter().uuidEqualTo(profileUUID).findFirst();
+    final events = profile == null
+        ? <CalendarEvent>[]
+        : await profile
           .calendarEvents
           .filter()
           .startGreaterThan(DateTime.now().subtract(const Duration(days: 1)))
@@ -121,24 +129,25 @@ class BackgroundRefresh {
           .sortByStart()
           .limit(40)
           .findAll();
+      final eventSnapshot = events
+          .where((e) => !e.isCanceled) // filter cancelled lessons
+          .combineEvents()
+          .map((e) => {
+                'id': e.first.id,
+                'name': e.first.title,
+                'shortName': e.first.subject.value?.afkorting,
+                'location': e.first.lokatie?.nullOnEmpty,
+                'startHourIndicator': e.first.lesuurVan,
+                'endHourIndicator': e.last.lesuurTotMet,
+                'infoType': e.first.infoType.index,
+                'startTime': e.first.start.millisecondsSinceEpoch,
+                'endTime': e.last.einde.millisecondsSinceEpoch,
+                'isCompleted': e.first.afgerond
+              }..removeWhere((key, value) => value == null))
+          .toList();
       await HomeWidget.saveWidgetData<List<Map<String, dynamic>>>(
         'events',
-        events
-            .where((e) => !e.isCanceled) // filter cancelled lessons
-            .combineEvents()
-            .map((e) => {
-                  'id': e.first.id,
-                  'name': e.first.title,
-                  'shortName': e.first.subject.value?.afkorting,
-                  'location': e.first.lokatie?.nullOnEmpty,
-                  'startHourIndicator': e.first.lesuurVan,
-                  'endHourIndicator': e.last.lesuurTotMet,
-                  'infoType': e.first.infoType.index,
-                  'startTime': e.first.start.millisecondsSinceEpoch,
-                  'endTime': e.last.einde.millisecondsSinceEpoch,
-                  'isCompleted': e.first.afgerond
-                }..removeWhere((key, value) => value == null))
-            .toList(),
+        eventSnapshot,
       );
 
       final schoolyear = profile == null
@@ -157,23 +166,26 @@ class BackgroundRefresh {
           ? <Grade>[]
           : await schoolyear.grades.filter().useable().findAll();
       final average = allGrades.isEmpty ? null : allGrades.average;
+      final gradeSnapshot = grades
+          .map(
+            (grade) => {
+              'subject': grade.subject.value?.afkorting ??
+                  grade.subject.value?.naam ??
+                  'Vak',
+              'grade': grade.cijferStr ?? '-',
+              'date': grade.datumIngevoerd?.millisecondsSinceEpoch,
+            }..removeWhere((key, value) => value == null),
+          )
+          .toList();
+      final gradeAverage =
+          average != null && average.isFinite ? average.toStringAsFixed(1) : '';
       await HomeWidget.saveWidgetData<List<Map<String, dynamic>>>(
         'grades',
-        grades
-            .map(
-              (grade) => {
-                'subject': grade.subject.value?.afkorting ??
-                    grade.subject.value?.naam ??
-                    'Vak',
-                'grade': grade.cijferStr ?? '-',
-                'date': grade.datumIngevoerd?.millisecondsSinceEpoch,
-              }..removeWhere((key, value) => value == null),
-            )
-            .toList(),
+        gradeSnapshot,
       );
       await HomeWidget.saveWidgetData<String>(
         'grades_average',
-        average != null && average.isFinite ? average.toStringAsFixed(1) : '',
+        gradeAverage,
       );
 
       final inbox = profile == null
@@ -186,23 +198,36 @@ class BackgroundRefresh {
               .sortByVerzondenOpDesc()
               .limit(3)
               .findAll();
+      final messageSnapshot = messages
+          .map(
+            (message) => {
+              'sender': message.afzender?.naam ?? 'Bericht',
+              'subject': message.onderwerp ?? 'Zonder onderwerp',
+              'read': message.isGelezen,
+              'date': message.verzondenOp.millisecondsSinceEpoch,
+            },
+          )
+          .toList();
+      final messagesUnread = inbox?.aantalOngelezen ?? 0;
       await HomeWidget.saveWidgetData<List<Map<String, dynamic>>>(
         'messages',
-        messages
-            .map(
-              (message) => {
-                'sender': message.afzender?.naam ?? 'Bericht',
-                'subject': message.onderwerp ?? 'Zonder onderwerp',
-                'read': message.isGelezen,
-                'date': message.verzondenOp.millisecondsSinceEpoch,
-              },
-            )
-            .toList(),
+        messageSnapshot,
       );
       await HomeWidget.saveWidgetData<String>(
         'messages_unread',
-        (inbox?.aantalOngelezen ?? 0).toString(),
+        messagesUnread.toString(),
       );
+
+      if (Platform.isLinux) {
+        await _writeLinuxWidgetSnapshot(
+          events: eventSnapshot,
+          grades: gradeSnapshot,
+          gradesAverage: gradeAverage,
+          messages: messageSnapshot,
+          messagesUnread: messagesUnread,
+        );
+        return;
+      }
 
       if (Platform.isAndroid) {
         await HomeWidget.updateWidget(
@@ -238,6 +263,35 @@ class BackgroundRefresh {
         );
       }
     }
+  }
+
+  static Future<void> _writeLinuxWidgetSnapshot({
+    required List<Map<String, dynamic>> events,
+    required List<Map<String, dynamic>> grades,
+    required String gradesAverage,
+    required List<Map<String, dynamic>> messages,
+    required int messagesUnread,
+  }) async {
+    final home = Platform.environment['HOME'] ?? Directory.current.path;
+    final dataHome = Platform.environment['XDG_DATA_HOME'] ??
+        '$home${Platform.pathSeparator}.local${Platform.pathSeparator}share';
+    final directory = Directory(
+      '$dataHome${Platform.pathSeparator}discipulus',
+    );
+    await directory.create(recursive: true);
+
+    final snapshot = File(
+      '${directory.path}${Platform.pathSeparator}widget-snapshot.json',
+    );
+    final temporary = File('${snapshot.path}.tmp');
+    await temporary.writeAsString(jsonEncode({
+      'events': events,
+      'grades': grades,
+      'gradesAverage': gradesAverage,
+      'messages': messages,
+      'messagesUnread': messagesUnread,
+    }));
+    await temporary.rename(snapshot.path);
   }
 }
 
