@@ -29,22 +29,46 @@ kpackagetool6 --type Plasma/Applet --install linux/plasma-widget
 ```
 
 Then right-click the desktop, choose **Enter Edit Mode** → **Add Widgets**, and
-search for **Discipulus**. The widget provides one-click access to the calendar,
-grades, messages, and the app.
+search for **Discipulus**. Add three copies and configure them individually as
+**Calendar**, **Grades**, and **Messages** from **Configure Discipulus**.
 
 ## Android phone and widgets
 
 Install `Discipulus-android.apk` on an Android phone. Open the launcher widget
-picker, choose Discipulus, and resize it to check the small, medium, and
-rectangular layouts. The widget updates from the app's existing 30-minute
-background refresh and opens the calendar when tapped.
+picker, and add the **Calendar**, **Grades**, and **Messages** widgets. They
+update from the app's existing 30-minute background refresh and open their
+matching app view when tapped.
+
+For a local install with ADB:
+
+```bash
+adb install -r Discipulus-android.apk
+```
 
 ## Wear OS
 
 Install `Discipulus-wearos.apk` on a Wear OS emulator or watch with the matching
-phone app. The app provides schedule, grades, settings, reminders, and a
-complication data source. Public builds must use the stable keystore configured
-in GitHub Actions; local debug signing is only for development installs.
+phone app. Install the phone APK first, then the Wear APK. The app provides
+schedule, grades, settings, reminders, three Tiles (Agenda, Cijfers, Berichten),
+and three complication providers. Public builds must use the stable keystore
+configured in GitHub Actions; local debug signing is only for development
+installs.
+
+For a connected Wear OS device:
+
+```bash
+adb install -r Discipulus-android.apk
+adb -s <wear-device-serial> install -r Discipulus-wearos.apk
+```
+
+Open the watch's Tiles carousel to add the three Discipulus Tiles. In the
+watch-face editor, choose Discipulus as a provider for the supported complication
+slot types.
+
+To see homework, open the watch app and choose **Rooster**. Homework entries are
+marked **HW** and can be tapped to mark them complete. To include cancelled
+lessons, open **Instellingen** and enable **Uitgevallen lessen tonen**; they are
+then shown with a cancelled label but do not trigger reminders.
 
 ## Building locally
 

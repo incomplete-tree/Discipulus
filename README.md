@@ -143,18 +143,30 @@ de user data directory en maakt een `discipulus`-commando in
 Berichten. `discipulus://calendar` wordt door de single-instance GTK-host naar
 de kalenderweergave gestuurd; gewone `%U` launches blijven geldig.
 
+Voor de drie KDE Plasma-widgets installeer je het applet één keer en voeg je
+het daarna drie keer toe. Open per kopie **Configure Discipulus** en kies
+achtereenvolgens **Calendar**, **Grades** en **Messages**. De widgets lezen de
+veilige lokale snapshot van de bestaande achtergrondverversing.
+
 ### Android widgets
 
-Installeer de phone APK, voeg **Discipulus** toe vanuit de widgetkiezer en
-resize de widget naar small, medium of rectangular. De widget gebruikt de
-event-snapshot van de bestaande Flutter background refresh, is veilig bij lege
-of ongeldige data en opent de kalender bij een tik. Kleuren volgen de lichte
-of donkere launcherweergave.
+Installeer de phone APK en voeg vanuit de widgetkiezer **Calendar**, **Grades**
+en **Messages** van Discipulus toe. De drie widgets gebruiken de snapshots van
+de bestaande Flutter background refresh, zijn veilig bij lege of ongeldige data
+en openen de bijbehorende appweergave bij een tik. Kleuren volgen de lichte of
+donkere launcherweergave.
 
 ### Wear OS en releases
 
-De Wear APK wordt gebouwd uit `android/wear` en gebruikt dezelfde release
-signing identity als de phone APK. Voor een publieke GitHub Release configureer
+De Wear APK wordt gebouwd uit `android/wear` en bevat drie Tiles (**Agenda**,
+**Cijfers** en **Berichten**) plus drie watch-face complication providers naast
+de bestaande agenda-complication. Installeer eerst de phone APK zodat de Wear
+Data Layer kan synchroniseren; open **Rooster** in de Wear-app om homework te
+zien (**HW**), en open **Instellingen** → **Uitgevallen lessen tonen** om
+geannuleerde lessen zichtbaar te maken. Voeg daarna de drie Tiles toe via de
+Tiles carousel en kies complications via de watch-face editor. Voor een publieke
+release gebruikt de Wear APK dezelfde release signing identity als de phone APK.
+Voor een publieke GitHub Release configureer
 je deze Actions secrets: `CM_KEYSTORE_BASE64`, `CM_KEYSTORE_PASSWORD`,
 `CM_KEY_ALIAS` en `CM_KEY_PASSWORD`. De release workflow accepteert
 `v1.2.3` tags en handmatige dispatches, controleert beide application IDs,

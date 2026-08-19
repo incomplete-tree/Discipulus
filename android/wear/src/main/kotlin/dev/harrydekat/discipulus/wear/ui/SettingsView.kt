@@ -22,6 +22,7 @@ fun SettingsView(viewModel: WearViewModel) {
     val listState = rememberScalingLazyListState()
 
     val showBreaks by viewModel.showBreakSeparators.collectAsState()
+    val showCancelledLessons by viewModel.showCancelledLessons.collectAsState()
     val hapticsEnabled by viewModel.hapticsEnabled.collectAsState()
     val hapticOffset by viewModel.hapticOffset.collectAsState()
 
@@ -52,6 +53,15 @@ fun SettingsView(viewModel: WearViewModel) {
                     checked = showBreaks,
                     onCheckedChange = { viewModel.setShowBreakSeparators(it) },
                     label = { Text("Pauzes tonen", style = MaterialTheme.typography.labelMedium) },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                )
+            }
+
+            item {
+                SwitchButton(
+                    checked = showCancelledLessons,
+                    onCheckedChange = { viewModel.setShowCancelledLessons(it) },
+                    label = { Text("Uitgevallen lessen tonen", style = MaterialTheme.typography.labelMedium) },
                     modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                 )
             }

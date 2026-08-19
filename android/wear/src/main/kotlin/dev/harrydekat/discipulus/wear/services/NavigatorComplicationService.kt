@@ -4,18 +4,12 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Icon
-import android.util.Base64
-import android.util.Log
 import androidx.wear.watchface.complications.data.*
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import androidx.wear.watchface.complications.datasource.SuspendingComplicationDataSourceService
 import dev.harrydekat.discipulus.wear.R
 import dev.harrydekat.discipulus.wear.WearAppActivity
-import dev.harrydekat.discipulus.wear.models.ScheduleEvent
-import java.io.ByteArrayInputStream
-import java.io.ObjectInputStream
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 class NavigatorComplicationService : SuspendingComplicationDataSourceService() {
@@ -114,29 +108,7 @@ class NavigatorComplicationService : SuspendingComplicationDataSourceService() {
         }
     }
 
-    private fun getNextEvent(context: Context): ScheduleEvent? {
-        val prefs = context.getSharedPreferences("discipulus_wear_prefs", Context.MODE_PRIVATE)
-        val scheduleBase64 = prefs.getString("cached_schedule", null) ?: return null
-        return try {
-            val bytes = Base64.decode(scheduleBase64, Base64.DEFAULT)
-            val bais = ByteArrayInputStream(bytes)
-            val map = ObjectInputStream(bais).use { it.readObject() } as? Map<String, List<ScheduleEvent>>
-            val now = Date()
-            val allEvents = map?.values?.flatten()?.sortedBy { it.startTime } ?: emptyList()
-
-            // 1. Return currently active event (excluding completed homework events)
-            val current = allEvents.firstOrNull { 
-                it.startTime.time <= now.time && it.endTime.time > now.time && !(it.isCompleted && it.infoType == 1) 
-            }
-            if (current != null) return current
-
-            // 2. Return next upcoming event that is not completed
-            allEvents.firstOrNull { it.startTime.after(now) && !(it.isCompleted && it.infoType == 1) }
-        } catch (e: Exception) {
-            Log.e("NavigatorComplication", "Error loading schedule for complication", e)
-            null
-        }
-    }
+    private fun getNextEvent(context: Context) = WearSnapshot.nextEvent(context)
 
     private fun getTapAction(context: Context): PendingIntent {
         val intent = Intent(context, WearAppActivity::class.java).apply {

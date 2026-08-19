@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:discipulus/api/models/calendar.dart';
 import 'package:discipulus/api/models/grades.dart';
+import 'package:discipulus/api/models/messages.dart';
 import 'package:discipulus/api/models/schoolyears.dart';
 import 'package:discipulus/main.dart';
 import 'package:discipulus/models/account.dart';
@@ -42,6 +43,8 @@ class WatchService with WidgetsBindingObserver {
         _sendSchedule();
       } else if (message['command'] == 'get_grades') {
         _sendRecentGrades();
+      } else if (message['command'] == 'get_messages') {
+        _sendRecentMessages();
       }
     });
 
@@ -59,6 +62,7 @@ class WatchService with WidgetsBindingObserver {
     await Future.wait([
       _sendSchedule(),
       _sendRecentGrades(),
+      _sendRecentMessages(),
     ]);
   }
 
@@ -79,7 +83,7 @@ class WatchService with WidgetsBindingObserver {
         .findAll();
 
     Map<DateTime, List<CalendarEvent>> rawGrouped =
-        groupBy(events.where((e) => !e.isCanceled), (e) => e.start.dayOnly);
+        groupBy(events, (e) => e.start.dayOnly);
 
     // Apply combineEvents per day to prevent cross-day combining
     Map<String, List<Map<String, dynamic>>> data = {};
@@ -98,7 +102,8 @@ class WatchService with WidgetsBindingObserver {
                 'status': e.first.status.index,
                 'startTime': e.first.start.millisecondsSinceEpoch,
                 'endTime': e.last.einde.millisecondsSinceEpoch,
-                'isCompleted': e.first.afgerond
+                'isCompleted': e.first.afgerond,
+                'isCanceled': e.first.isCanceled
               }..removeWhere((key, value) => value == null))
           .toList();
     }
@@ -156,6 +161,37 @@ class WatchService with WidgetsBindingObserver {
     await _watch.sendMessage({
       'type': 'grades',
       'data': schoolyearsData,
+    });
+    _updateSyncTime();
+  }
+
+  Future<void> _sendRecentMessages() async {
+    final inbox =
+        await activeProfile.berichtMappen.filter().idEqualTo(1).findFirst();
+    final messages = inbox == null
+        ? <Bericht>[]
+        : await inbox.berichten
+            .filter()
+            .sortByVerzondenOpDesc()
+            .limit(20)
+            .findAll();
+
+    await _watch.sendMessage({
+      'type': 'messages',
+      'data': {
+        'unread': inbox?.aantalOngelezen ?? 0,
+        'messages': messages
+            .map(
+              (message) => {
+                'id': message.id.toString(),
+                'sender': message.afzender?.naam ?? 'Bericht',
+                'subject': message.onderwerp ?? 'Zonder onderwerp',
+                'read': message.isGelezen,
+                'date': message.verzondenOp.millisecondsSinceEpoch,
+              },
+            )
+            .toList(),
+      },
     });
     _updateSyncTime();
   }

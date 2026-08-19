@@ -1,24 +1,37 @@
 # Discipulus handoff status
 
-This is a snapshot of the worktree at handoff. No commit or push was made.
+This is the validated handoff status for the stacked feature branches. No
+remote push was made.
 
 ## Present in the source tree
 
 - Linux desktop packaging and KDE launcher actions.
 - Linux desktop route handling for Calendar, Grades, and Messages.
 - Android launcher widgets with small, medium, and rectangular layouts.
+- Apple WidgetKit calendar, grades, and messages entries.
+- KDE Plasma Calendar, Grades, and Messages applet configuration.
+- Wear OS Calendar, Grades, and Messages Tiles and complication providers.
+- Wear OS phone-to-watch synchronization for schedule, grades, and messages.
+- Wear OS homework entries are marked `HW`; cancelled lessons are synced and
+  controlled by the `Uitgevallen lessen tonen` setting. Cancelled lessons do
+  not schedule haptic reminders.
 - Wear OS module/build configuration and release ProGuard rules.
 - CI and GitHub Release workflow definitions.
 - Dart tests for desktop route parsing.
 
 ## Validated in the completion pass
 
-- `flutter pub get` completed with the public Fleather compatibility pin.
 - `dart format --output=none --set-exit-if-changed lib test` passed.
 - `flutter analyze --no-fatal-infos --no-fatal-warnings` passed with the
-  existing non-fatal diagnostics only.
-- `flutter test` passed, including the desktop route parsing tests.
-- `flutter build linux --release` produced a working x86_64 bundle.
+  existing 92 non-fatal diagnostics only.
+- `flutter test` passed in the earlier completion pass, including the desktop
+  route parsing tests.
+- `flutter build linux --release` produced the current x86_64 bundle.
+- `flutter build apk --release` produced the current phone APK with the three
+  Android widgets, the expanded Wear sync payload, and homework/cancellation
+  support.
+- `:wear:assembleRelease --no-daemon` compiled all three Tiles and all three
+  complication services.
 - The Linux installer was exercised in isolated XDG directories. It installed
   the executable, launcher actions, AppStream metadata, and icon, and the
   packaged tarball passed archive validation.
@@ -32,15 +45,17 @@ This is a snapshot of the worktree at handoff. No commit or push was made.
   this desktop build; the installed repaired process remained alive through a
   stability check with no further `eglMakeCurrent failed` errors.
 - A Plasma 6 widget was added, installed, placed on the active desktop, and
-  reloaded without widget-specific QML errors. It provides direct Calendar,
-  Grades, Messages, and app launch actions through the existing URL handler.
+  reloaded without widget-specific QML errors. It provides configurable
+  Calendar, Grades, Messages, and app launch actions through the existing URL
+  handler.
 - Debian `adb` 1:34.0.5-12 was installed on the host. Fresh phone and Wear OS
-  release APKs were built, v2-verified, and copied to the handoff artifacts
-  directory; no Android or Wear device was connected for live installation.
-- `flutter build apk --release` produced the phone APK and
-  `:wear:assembleRelease` produced the Wear OS APK. Both passed ZIP and package
-  ID validation (`dev.harrydekat.discipulus`). Local artifacts use the debug
-  key because production signing credentials are not present here.
+  release APKs were built, v2-verified, and copied to `artifacts/`.
+- Both APKs passed package validation for `dev.harrydekat.discipulus`, target
+  SDK 36, and APK Signature Scheme v2. Local artifacts use the debug key
+  because production signing credentials are not present here.
+- Current local artifact SHA-256 values are:
+  - Android phone: `cb9f7090be42a8534a66f21af65c786869deeb4ec187233db9fc52d620a3f4f8`
+  - Wear OS: `45f9f533af64a4e087aea3ef1d6a7f8120628d0b07c300b73fbbef65779b1ce8`
 - Both Android production variants fail closed when
   `DISCIPULUS_RELEASE_BUILD=true` is set without signing credentials.
 - The CI and release workflows parse as YAML, use the public repositories only,
@@ -53,13 +68,22 @@ This is a snapshot of the worktree at handoff. No commit or push was made.
   available for live widget rendering, tap navigation, or Wear Data Layer
   testing. The native widget code is covered by the Android release compile and
   malformed/stale event guards; live visual behavior still needs device QA.
+- A final unprivileged `flutter test` rerun was blocked because the sandbox
+  could not open the test harness's temporary loopback socket; the source test
+  suite had passed in the earlier completion pass.
 - A production-signed APK was not generated locally. The release workflow
   requires `CM_KEYSTORE_BASE64`, `CM_KEYSTORE_PASSWORD`, `CM_KEY_ALIAS`, and
   `CM_KEY_PASSWORD` before it can publish.
 - The local Debian image provided JDK 21 rather than JDK 17, and the local
   Android builds passed with JDK 21. CI explicitly pins Temurin JDK 17.
-- The handoff directory has no usable Git metadata, so no commit or push was
-  made and a repository diff cannot be generated here.
+- The current branch is `feature/wear-tiles`, stacked on
+  `feature/widgets-kde`, `feature/widgets-apple`, `feature/widgets-android`,
+  and `handoff/fix-wear-sync`. The upstream comparison was made against
+  `upstream/main` at the handoff snapshot; no branch was pushed.
 
-Generated directories, local dependency caches, and machine-specific toolchains
-are intentionally excluded from the source portion of the ZIP.
+The active watch used in the earlier sync handoff is not currently reachable:
+ADB reports no connected device and reconnecting its previous network endpoint
+is refused. Therefore the final tile carousel, complication rendering, and
+Data Layer round-trip still need live Wear OS device QA. Generated directories,
+local dependency caches, and machine-specific toolchains are intentionally
+excluded from the source portion of the ZIP.
