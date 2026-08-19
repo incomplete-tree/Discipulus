@@ -228,6 +228,14 @@ class BackgroundRefresh {
           name: "EventWidgetProvider",
           iOSName: "NavigatorWidget",
         );
+        await HomeWidget.updateWidget(
+          name: "GradesWidget",
+          iOSName: "GradesWidget",
+        );
+        await HomeWidget.updateWidget(
+          name: "MessagesWidget",
+          iOSName: "MessagesWidget",
+        );
       }
     }
   }

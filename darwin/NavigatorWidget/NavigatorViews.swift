@@ -49,3 +49,132 @@ struct WidgetBackgroundModifier: ViewModifier {
         }
     }
 }
+
+struct SnapshotWidgetEntryView: View {
+    let entry: SnapshotEntry
+    @Environment(\.widgetFamily) private var family
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Group {
+            switch family {
+            case .accessoryCircular:
+                circularView
+            case .accessoryInline:
+                inlineView
+            case .accessoryRectangular:
+                rectangularView
+            default:
+                regularView
+            }
+        }
+        .modifier(
+            WidgetBackgroundModifier(
+                colorScheme: colorScheme,
+                useDiscipulusColorscheme: false
+            )
+        )
+        .widgetURL(URL(string: "discipulus://\(entry.kind.route)"))
+    }
+
+    private var regularView: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            header
+            if entry.kind == .grades {
+                if let average = entry.average {
+                    Text("Gemiddelde \(average)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                if entry.grades.isEmpty {
+                    emptyText("Nog geen cijfers")
+                } else {
+                    ForEach(Array(entry.grades.prefix(3).enumerated()), id: \.offset) { _, grade in
+                        Text("\(grade.subject) · \(grade.grade)")
+                            .lineLimit(1)
+                    }
+                }
+            } else {
+                if entry.unreadMessages > 0 {
+                    Text("\(entry.unreadMessages) ongelezen")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                if entry.messages.isEmpty {
+                    emptyText("Geen berichten")
+                } else {
+                    ForEach(Array(entry.messages.prefix(3).enumerated()), id: \.offset) { _, message in
+                        Text("\(message.isRead ? "" : "• ")\(message.sender) · \(message.subject)")
+                            .lineLimit(1)
+                    }
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding()
+    }
+
+    private var header: some View {
+        Label(entry.kind.title, systemImage: entry.kind.icon)
+            .font(.headline)
+            .lineLimit(1)
+    }
+
+    private var inlineView: some View {
+        Text("\(entry.kind.title): \(summary)")
+            .lineLimit(1)
+    }
+
+    private var rectangularView: some View {
+        HStack(spacing: 8) {
+            Image(systemName: entry.kind.icon)
+                .widgetAccentable()
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.kind.title)
+                    .font(.headline)
+                    .lineLimit(1)
+                Text(summary)
+                    .font(.caption)
+                    .lineLimit(1)
+            }
+        }
+    }
+
+    private var circularView: some View {
+        ZStack {
+            Circle().fill(Color.accentColor.opacity(0.2))
+            VStack(spacing: 0) {
+                Image(systemName: entry.kind.icon)
+                    .font(.caption)
+                    .widgetAccentable()
+                Text(circularValue)
+                    .font(.headline)
+                    .lineLimit(1)
+            }
+        }
+    }
+
+    private var summary: String {
+        switch entry.kind {
+        case .grades:
+            return entry.average.map { "Gemiddelde \($0)" } ?? "Nog geen cijfers"
+        case .messages:
+            return entry.unreadMessages > 0 ? "\(entry.unreadMessages) ongelezen" : "Geen nieuwe berichten"
+        }
+    }
+
+    private var circularValue: String {
+        switch entry.kind {
+        case .grades:
+            return entry.average ?? "—"
+        case .messages:
+            return "\(entry.unreadMessages)"
+        }
+    }
+
+    private func emptyText(_ text: String) -> some View {
+        Text(text)
+            .foregroundColor(.secondary)
+            .lineLimit(1)
+    }
+}
