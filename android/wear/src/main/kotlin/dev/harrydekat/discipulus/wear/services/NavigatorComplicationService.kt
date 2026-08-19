@@ -81,6 +81,21 @@ class NavigatorComplicationService : SuspendingComplicationDataSourceService() {
                 }.build()
             }
 
+            ComplicationType.SMALL_IMAGE -> {
+                SmallImageComplicationData.Builder(
+                    SmallImage.Builder(
+                        Icon.createWithResource(
+                            this@NavigatorComplicationService,
+                            R.drawable.discipulus_complication_icon,
+                        ),
+                        SmallImageType.ICON,
+                    ).build(),
+                    PlainComplicationText.Builder(
+                        "Volgende les: ${nextEvent?.name ?: "Geen"}",
+                    ).build(),
+                ).setTapAction(tapAction).build()
+            }
+
             else -> null
         }
     }

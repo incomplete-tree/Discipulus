@@ -110,23 +110,28 @@ class NavigatorWidgetProvider : HomeWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.widget_small)
         val now = Date().time
         val current = events.firstOrNull { it.startTime <= now && it.endTime > now }
+        val next = events.firstOrNull { it.startTime > now }
+        val primary = current ?: next
         val colors = widgetColors(context, widgetData)
 
-        if (current == null) {
+        if (primary == null) {
             views.setTextViewText(R.id.event_location, "Geen lessen vandaag")
             views.setTextViewText(R.id.event_name, "")
             views.setTextViewText(R.id.event_time, "")
         } else {
-            views.setTextViewText(R.id.event_location, current.location ?: "Geen locatie")
-            views.setTextViewText(R.id.event_name, current.name)
-            views.setTextViewText(R.id.event_time, DateUtils.formatTime(Date(current.startTime)))
-            views.setTextColor(R.id.event_location, current.infotypeColor(true))
+            views.setTextViewText(
+                R.id.event_location,
+                primary.location ?: if (current == null) "Volgende les" else "Geen locatie"
+            )
+            views.setTextViewText(R.id.event_name, primary.name)
+            views.setTextViewText(R.id.event_time, DateUtils.formatTime(Date(primary.startTime)))
+            views.setTextColor(R.id.event_location, primary.infotypeColor(true))
         }
 
-        val next = events.firstOrNull { it.startTime > now }
         views.setTextViewText(
             R.id.next_event,
-            next?.let { "${it.name} ${DateUtils.formatDate(it.startTime - now)}" }
+            next?.takeIf { it.id != primary?.id }
+                ?.let { "${it.name} ${DateUtils.formatDate(it.startTime - now)}" }
                 ?: "Geen volgende les"
         )
         applyColors(views, colors, hasEventLocation = true, hasNext = true)
@@ -141,17 +146,22 @@ class NavigatorWidgetProvider : HomeWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.widget_medium)
         val now = Date().time
         val current = events.firstOrNull { it.startTime <= now && it.endTime > now }
+        val next = events.firstOrNull { it.startTime > now }
+        val primary = current ?: next
         val colors = widgetColors(context, widgetData)
 
-        if (current == null) {
+        if (primary == null) {
             views.setTextViewText(R.id.event_location, "Geen lessen vandaag")
             views.setTextViewText(R.id.event_name, "")
             views.setTextViewText(R.id.event_time, "")
         } else {
-            views.setTextViewText(R.id.event_location, current.location ?: "Geen locatie")
-            views.setTextViewText(R.id.event_name, current.name)
-            views.setTextViewText(R.id.event_time, DateUtils.formatTime(Date(current.startTime)))
-            views.setTextColor(R.id.event_location, current.infotypeColor(true))
+            views.setTextViewText(
+                R.id.event_location,
+                primary.location ?: if (current == null) "Volgende les" else "Geen locatie"
+            )
+            views.setTextViewText(R.id.event_name, primary.name)
+            views.setTextViewText(R.id.event_time, DateUtils.formatTime(Date(primary.startTime)))
+            views.setTextColor(R.id.event_location, primary.infotypeColor(true))
         }
 
         val upcoming = events.filter { it.startTime > now }.take(3)

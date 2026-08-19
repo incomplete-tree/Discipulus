@@ -79,9 +79,9 @@ class BackgroundRefresh {
         if (profile.settings.gradesNotfications)
           _quickRefreshGrades(profile, enableNotifcations),
 
-        // Refresh calendar events (oncoming two weeks)
-        if (profile.settings.eventsNotifications)
-          _quickRefreshCalendar(profile, enableNotifcations),
+        // Calendar data also feeds native widgets and watch sync. The
+        // notification setting should only control notifications, not refresh.
+        _quickRefreshCalendar(profile, enableNotifcations),
 
         if (profile.settings.remindNotifications) scheduleReminders(profile),
       ]);
