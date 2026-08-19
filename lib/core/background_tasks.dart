@@ -79,8 +79,7 @@ class BackgroundRefresh {
           _quickRefreshGrades(profile, enableNotifcations),
 
         // Refresh calendar events (oncoming two weeks)
-        if (profile.settings.eventsNotifications)
-          _quickRefreshCalendar(profile, enableNotifcations),
+        _quickRefreshCalendar(profile, enableNotifcations),
 
         if (profile.settings.remindNotifications) scheduleReminders(profile)
       ]);
@@ -141,13 +140,95 @@ class BackgroundRefresh {
                 }..removeWhere((key, value) => value == null))
             .toList(),
       );
-      await HomeWidget.updateWidget(
-        name: "EventWidgetProvider",
-        iOSName: "NavigatorWidget",
-        androidName: "NavigatorWidgetProvider",
-        qualifiedAndroidName:
-            "dev.harrydekat.discipulus.NavigatorWidgetProvider",
+
+      final schoolyear = profile == null
+          ? null
+          : await profile.schoolyears.filter().sortByEindeDesc().findFirst();
+      final grades = schoolyear == null
+          ? <Grade>[]
+          : await schoolyear.grades
+              .filter()
+              .useable()
+              .sortByDatumIngevoerdDesc()
+              .thenById()
+              .limit(3)
+              .findAll();
+      final allGrades = schoolyear == null
+          ? <Grade>[]
+          : await schoolyear.grades.filter().useable().findAll();
+      final average = allGrades.isEmpty ? null : allGrades.average;
+      await HomeWidget.saveWidgetData<List<Map<String, dynamic>>>(
+        'grades',
+        grades
+            .map(
+              (grade) => {
+                'subject': grade.subject.value?.afkorting ??
+                    grade.subject.value?.naam ??
+                    'Vak',
+                'grade': grade.cijferStr ?? '-',
+                'date': grade.datumIngevoerd?.millisecondsSinceEpoch,
+              }..removeWhere((key, value) => value == null),
+            )
+            .toList(),
       );
+      await HomeWidget.saveWidgetData<String>(
+        'grades_average',
+        average != null && average.isFinite ? average.toStringAsFixed(1) : '',
+      );
+
+      final inbox = profile == null
+          ? null
+          : await profile.berichtMappen.filter().idEqualTo(1).findFirst();
+      final messages = inbox == null
+          ? <Bericht>[]
+          : await inbox.berichten
+              .filter()
+              .sortByVerzondenOpDesc()
+              .limit(3)
+              .findAll();
+      await HomeWidget.saveWidgetData<List<Map<String, dynamic>>>(
+        'messages',
+        messages
+            .map(
+              (message) => {
+                'sender': message.afzender?.naam ?? 'Bericht',
+                'subject': message.onderwerp ?? 'Zonder onderwerp',
+                'read': message.isGelezen,
+                'date': message.verzondenOp.millisecondsSinceEpoch,
+              },
+            )
+            .toList(),
+      );
+      await HomeWidget.saveWidgetData<String>(
+        'messages_unread',
+        (inbox?.aantalOngelezen ?? 0).toString(),
+      );
+
+      if (Platform.isAndroid) {
+        await HomeWidget.updateWidget(
+          name: "EventWidgetProvider",
+          androidName: "NavigatorWidgetProvider",
+          qualifiedAndroidName:
+              "dev.harrydekat.discipulus.NavigatorWidgetProvider",
+        );
+        await HomeWidget.updateWidget(
+          name: "GradesWidgetProvider",
+          androidName: "GradesWidgetProvider",
+          qualifiedAndroidName:
+              "dev.harrydekat.discipulus.GradesWidgetProvider",
+        );
+        await HomeWidget.updateWidget(
+          name: "MessagesWidgetProvider",
+          androidName: "MessagesWidgetProvider",
+          qualifiedAndroidName:
+              "dev.harrydekat.discipulus.MessagesWidgetProvider",
+        );
+      } else {
+        await HomeWidget.updateWidget(
+          name: "EventWidgetProvider",
+          iOSName: "NavigatorWidget",
+        );
+      }
     }
   }
 }
