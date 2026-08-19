@@ -29,9 +29,8 @@ void showGradeDetailSheet(
       modelSheet: modelSheet,
       builder: (p0, p1, scrollcontroller) {
         return ListView(
-            controller: scrollcontroller,
-            children: [gradeInformation],
-
+          controller: scrollcontroller,
+          children: [gradeInformation],
         );
       },
     );

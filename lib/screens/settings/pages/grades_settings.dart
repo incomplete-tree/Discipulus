@@ -179,7 +179,6 @@ class _GradesSettingsPageState extends State<GradesSettingsPage> {
         ),
       ],
     );
-
   }
 }
 

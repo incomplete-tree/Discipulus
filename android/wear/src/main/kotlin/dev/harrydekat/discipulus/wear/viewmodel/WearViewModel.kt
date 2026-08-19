@@ -317,12 +317,18 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
             try {
                 val nodesContext = Wearable.getNodeClient(getApplication<Application>())
                 val nodes = nodesContext.connectedNodes.await()
+                if (nodes.isEmpty()) {
+                    _isLoading.value = false
+                    return@launch
+                }
                 val bytes = serialize(payload)
                 nodes.forEach { node ->
                     messageClient.sendMessage(node.id, path, bytes).await()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+            } finally {
+                _isLoading.value = false
             }
         }
     }

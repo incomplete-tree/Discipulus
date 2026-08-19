@@ -19,10 +19,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
-    }
-
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "dev.harrydekat.discipulus"
@@ -40,21 +36,34 @@ android {
     if (keystorePropertiesFile.exists()) {
         keystoreProperties.load(keystorePropertiesFile.inputStream())
     }
+    val ciKeystorePath = System.getenv("CM_KEYSTORE_PATH")
+    val ciKeystoreConfigured = System.getenv("CI") == "true" &&
+        !ciKeystorePath.isNullOrBlank() &&
+        !System.getenv("CM_KEYSTORE_PASSWORD").isNullOrBlank() &&
+        !System.getenv("CM_KEY_ALIAS").isNullOrBlank() &&
+        !System.getenv("CM_KEY_PASSWORD").isNullOrBlank()
+    val localKeystoreConfigured = listOf(
+        "storeFile",
+        "storePassword",
+        "keyAlias",
+        "keyPassword",
+    ).all { keystoreProperties.containsKey(it) }
+    val releaseSigningRequired = System.getenv("DISCIPULUS_RELEASE_BUILD") == "true"
+
+    check(!releaseSigningRequired || ciKeystoreConfigured || localKeystoreConfigured) {
+        "A production release requires CM_KEYSTORE_* signing credentials."
+    }
 
     signingConfigs {
         create("release") {
-            if (System.getenv("CI") == "true") { // CI=true is exported by Codemagic
-                storeFile = file(System.getenv("CM_KEYSTORE_PATH"))
+            if (ciKeystoreConfigured) {
+                storeFile = file(ciKeystorePath!!)
                 storePassword = System.getenv("CM_KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("CM_KEY_ALIAS")
                 keyPassword = System.getenv("CM_KEY_PASSWORD")
             } else {
                 // Load from local.properties
-                if (keystoreProperties.containsKey("storeFile") &&
-                    keystoreProperties.containsKey("storePassword") &&
-                    keystoreProperties.containsKey("keyAlias") &&
-                    keystoreProperties.containsKey("keyPassword")
-                ) {
+                if (localKeystoreConfigured) {
                     storeFile = file(keystoreProperties["storeFile"] as String)
                     storePassword = keystoreProperties["storePassword"] as String
                     keyAlias = keystoreProperties["keyAlias"] as String
@@ -68,8 +77,13 @@ android {
 
     buildTypes {
         release {
-            // Use the release signing config
-            signingConfig = if (System.getenv("CI") == "true") signingConfigs.getByName("release") else signingConfigs.getByName("debug")
+            // Use a supplied release key in CI; local builds stay installable with
+            // the standard debug key when no contributor keystore is configured.
+            signingConfig = if (ciKeystoreConfigured || localKeystoreConfigured) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             // You can add other release-specific settings here, like minification
             isMinifyEnabled = true
 
@@ -80,6 +94,24 @@ android {
         jniLibs {
             useLegacyPackaging = false
         }
+        resources {
+            excludes += "commonMain/default/manifest"
+            excludes += "commonMain/default/linkdata/root_package/0_.knm"
+            excludes += "nativeMain/default/linkdata/root_package/0_.knm"
+            excludes += "nativeMain/default/linkdata/module"
+            excludes += "nativeMain/default/manifest"
+            excludes += "commonMain/default/linkdata/module"
+            excludes += "META-INF/kotlin-project-structure-metadata.json"
+            excludes += "commonMain/default/linkdata/**/*.knm"
+            excludes += "nativeMain/default/linkdata/**/*.knm"
+            pickFirsts += "META-INF/androidx/lifecycle/lifecycle-common/LICENSE.txt"
+        }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
     }
 }
 

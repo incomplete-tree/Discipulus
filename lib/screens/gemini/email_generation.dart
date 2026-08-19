@@ -30,7 +30,8 @@ class _EmailGenerationScreenState extends State<EmailGenerationScreen> {
       final prompt = _inputController.text;
       final response = await AIService.sendMessage(
         history: [AIContent.user(prompt)],
-        systemInstruction: widget.customSystemInstruction ?? GeminiInstructions.emailWriter,
+        systemInstruction:
+            widget.customSystemInstruction ?? GeminiInstructions.emailWriter,
       );
       setState(() {
         _generatedEmail = response;

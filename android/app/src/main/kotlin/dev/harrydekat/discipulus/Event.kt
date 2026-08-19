@@ -24,5 +24,6 @@ data class Event(
     }
 
     val infotypeShortString: String?
-        get() = arrayOf(null, "HW", "PW", "T", "SO", "MO", null, null)[infoType]
+        get() = arrayOf(null, "HW", "PW", "T", "SO", "MO", null, null)
+            .getOrNull(infoType)
 }

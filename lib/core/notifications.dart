@@ -122,6 +122,7 @@ class NotificationController {
       android: AndroidInitializationSettings('discipulus_notification_icon'),
       iOS: initializationSettingsDarwin,
       macOS: initializationSettingsDarwin,
+      linux: LinuxInitializationSettings(defaultActionName: 'Open Discipulus'),
     );
     await flutterLocalNotificationsPlugin.initialize(
       settings: initializationSettings,
@@ -316,6 +317,15 @@ class Intents {
           redirect: true,
         ).push(navKey.currentContext!);
       } else if (uri.host == "calendar") {
+        // A widget can open the calendar without pointing to one particular
+        // event.
+        if (uri.queryParameters["eventId"] == null) {
+          Layout.of(navKey.currentContext!)?.goToPage(
+            const CalendarDayView(),
+          );
+          return;
+        }
+
         // Handle calendar related deeplinks
         int? personId = int.tryParse(uri.queryParameters["profileId"] ?? "");
         int? calendarId = int.tryParse(uri.queryParameters["eventId"] ?? "");

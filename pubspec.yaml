@@ -39,7 +39,9 @@ dependencies:
     git:
       url: https://github.com/fleather-editor/fleather.git
       path: packages/fleather
-      ref: c391628324db2bf1ba831aa7f990a3967e361dca
+      # Flutter 3.47 added TextInputClient.onFocusReceived. Pin the upstream
+      # compatibility fix until it is included in Fleather's default branch.
+      ref: cd0eb02a20d9bd28c59c923999231d45e3229b4f
   infinite_scroll_pagination: ^5.0.0
   focus_on_it: ^2.0.1
 
@@ -85,6 +87,7 @@ dependencies:
   dnd_manager:
     git:
       url: https://github.com/DiscipulusApp/dnd_manager.git
+      ref: a5f79c9
     # path: /Users/donda/Documents/Git/Repos/dnd_manager/
   workmanager:
     git:

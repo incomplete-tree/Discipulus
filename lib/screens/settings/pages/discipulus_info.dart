@@ -44,7 +44,8 @@ class _InfoSettingsPageState extends State<InfoSettingsPage> {
         ListTile(
           leading: const Icon(Icons.troubleshoot_rounded),
           title: const Text("Diagnostische check"),
-          subtitle: const Text("Controleer of de verbindingen en endpoints goed werken"),
+          subtitle: const Text(
+              "Controleer of de verbindingen en endpoints goed werken"),
           trailing: const Icon(Icons.navigate_next),
           onTap: () => const DiagnosticCheckPage().push(context),
         ),

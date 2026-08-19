@@ -23,6 +23,7 @@ import 'package:discipulus/models/settings.dart';
 import 'package:discipulus/core/handoff.dart';
 import 'package:discipulus/core/notifications.dart';
 import 'package:discipulus/core/routes.dart';
+import 'package:discipulus/core/desktop_integration.dart';
 import 'package:discipulus/core/ad_service.dart';
 import 'package:discipulus/core/watch_service.dart';
 import 'package:dynamic_color/dynamic_color.dart';
@@ -67,8 +68,11 @@ late final AppLinks appLinks;
 late final RootIsolateToken rootIsolateToken;
 Directory? storageDir;
 late final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+DesktopLaunchIntent? desktopLaunchIntent;
 
-void main(args) async {
+void main(List<String> args) async {
+  desktopLaunchIntent = DesktopLaunchIntent.fromArgs(args);
+
   if (runWebViewTitleBarWidget(args)) {
     return;
   }
@@ -79,12 +83,10 @@ void main(args) async {
   rootIsolateToken = RootIsolateToken.instance!;
 
   //Expand app behind navigation bar
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    systemNavigationBarColor: Colors.transparent,
-  ));
-  SystemChrome.setEnabledSystemUIMode(
-    SystemUiMode.edgeToEdge,
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(systemNavigationBarColor: Colors.transparent),
   );
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
   await initIsar();
 
@@ -99,7 +101,8 @@ void main(args) async {
     if (Platform.isIOS || Platform.isMacOS) {
       FlutterAppleHandoff.onActivityChanged = onNewUserActivity;
       await HomeWidget.setAppGroupId(
-          'group.DUGUWCFH8P.dev.harrydekat.discipulus');
+        'group.DUGUWCFH8P.dev.harrydekat.discipulus',
+      );
       try {
         await HomeWidget.registerInteractivityCallback(homeWidgetCallback);
       } catch (e) {
@@ -111,7 +114,7 @@ void main(args) async {
   await NotificationController.init();
 
   if (Platform.isAndroid) await AndroidAlarmManager.initialize();
-  if (Platform.isIOS) WatchService().init();
+  if (Platform.isIOS || Platform.isAndroid) WatchService().init();
 
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
@@ -145,15 +148,66 @@ class MainAppState extends State<MainApp> {
 
   @override
   void initState() {
+    super.initState();
     updateTheme();
     _linkSub = appLinks.uriLinkStream.listen(Intents.uniLinkListener);
+
+    DesktopIntegration.bind(_openDesktopRoute);
 
     Future(() async {
       await AccountMigration.checkAndMigrateAccounts();
       await AdService.initialize();
     });
+  }
 
-    super.initState();
+  Future<void> _openDesktopRoute(String route) async {
+    final intent = DesktopLaunchIntent.fromRoute(route);
+    final context = navKey.currentContext;
+    if (intent == null || context == null) return;
+
+    final layout = Layout.of(context);
+    if (layout == null || appSettings.activeProfileUuid == null) return;
+
+    for (final segment in destinations(
+      activeProfile.account.value!.permissions,
+    )) {
+      for (final destination in segment.destinations) {
+        if (destination.label == intent.destinationLabel) {
+          await layout.goToPage(destination.view);
+          return;
+        }
+      }
+    }
+  }
+
+  Widget _initialHome() {
+    if (appSettings.activeProfileUuid == null &&
+        isar.profiles.countSync() == 0) {
+      return const VerticalIntroductionScreen();
+    }
+
+    final launchIntent = desktopLaunchIntent;
+    if (launchIntent != null) {
+      desktopLaunchIntent = null;
+      for (final segment in destinations(
+        activeProfile.account.value!.permissions,
+      )) {
+        for (final destination in segment.destinations) {
+          if (destination.label == launchIntent.destinationLabel) {
+            return onPopToggleDrawer(child: destination.view);
+          }
+        }
+      }
+    }
+
+    // An account was found, so we will show the starting view that the user
+    // configured.
+    final selectedDestination =
+        destinations(activeProfile.account.value!.permissions)
+            .expand((e) => e.destinations)
+            .toList()[activeProfile.settings.startingPageIndex];
+
+    return onPopToggleDrawer(child: selectedDestination.view);
   }
 
   @override
@@ -173,50 +227,59 @@ class MainAppState extends State<MainApp> {
         //
 
         List<Color> extractAdditionalColours(ColorScheme scheme) => [
-              scheme.surface,
-              scheme.surfaceDim,
-              scheme.surfaceBright,
-              scheme.surfaceContainerLowest,
-              scheme.surfaceContainerLow,
-              scheme.surfaceContainer,
-              scheme.surfaceContainerHigh,
-              scheme.surfaceContainerHighest,
-            ];
+          scheme.surface,
+          scheme.surfaceDim,
+          scheme.surfaceBright,
+          scheme.surfaceContainerLowest,
+          scheme.surfaceContainerLow,
+          scheme.surfaceContainer,
+          scheme.surfaceContainerHigh,
+          scheme.surfaceContainerHighest,
+        ];
 
         ColorScheme insertAdditionalColours(
-                ColorScheme scheme, List<Color> additionalColours) =>
-            scheme.copyWith(
-              surface: additionalColours[0],
-              surfaceDim: additionalColours[1],
-              surfaceBright: additionalColours[2],
-              surfaceContainerLowest: additionalColours[3],
-              surfaceContainerLow: additionalColours[4],
-              surfaceContainer: additionalColours[5],
-              surfaceContainerHigh: additionalColours[6],
-              surfaceContainerHighest: additionalColours[7],
-            );
+          ColorScheme scheme,
+          List<Color> additionalColours,
+        ) => scheme.copyWith(
+          surface: additionalColours[0],
+          surfaceDim: additionalColours[1],
+          surfaceBright: additionalColours[2],
+          surfaceContainerLowest: additionalColours[3],
+          surfaceContainerLow: additionalColours[4],
+          surfaceContainer: additionalColours[5],
+          surfaceContainerHigh: additionalColours[6],
+          surfaceContainerHighest: additionalColours[7],
+        );
 
         (ColorScheme light, ColorScheme dark) generateDynamicColourSchemes(
-            ColorScheme lightDynamic, ColorScheme darkDynamic) {
+          ColorScheme lightDynamic,
+          ColorScheme darkDynamic,
+        ) {
           var lightBase = ColorScheme.fromSeed(
             seedColor: lightDynamic.primary,
-            dynamicSchemeVariant: appSettings.themeVariant.variant ??
+            dynamicSchemeVariant:
+                appSettings.themeVariant.variant ??
                 DynamicSchemeVariant.tonalSpot,
           );
           var darkBase = ColorScheme.fromSeed(
             seedColor: darkDynamic.primary,
             brightness: Brightness.dark,
-            dynamicSchemeVariant: appSettings.themeVariant.variant ??
+            dynamicSchemeVariant:
+                appSettings.themeVariant.variant ??
                 DynamicSchemeVariant.tonalSpot,
           );
 
           var lightAdditionalColours = extractAdditionalColours(lightBase);
           var darkAdditionalColours = extractAdditionalColours(darkBase);
 
-          var lightScheme =
-              insertAdditionalColours(lightBase, lightAdditionalColours);
-          var darkScheme =
-              insertAdditionalColours(darkBase, darkAdditionalColours);
+          var lightScheme = insertAdditionalColours(
+            lightBase,
+            lightAdditionalColours,
+          );
+          var darkScheme = insertAdditionalColours(
+            darkBase,
+            darkAdditionalColours,
+          );
 
           return (lightScheme.harmonized(), darkScheme.harmonized());
         }
@@ -236,27 +299,30 @@ class MainAppState extends State<MainApp> {
         } else {
           Color seedColor =
               (appSettings.useMaterialYou ?? true) && accentColor != null
-                  ? accentColor!
-                  : Color(appSettings.activeMaterialYouColorInt);
+              ? accentColor!
+              : Color(appSettings.activeMaterialYouColorInt);
 
           // Not using Material You colors set by Android S+ devices
           lightColorScheme = ColorScheme.fromSeed(
             seedColor: seedColor,
-            dynamicSchemeVariant: appSettings.themeVariant.variant ??
+            dynamicSchemeVariant:
+                appSettings.themeVariant.variant ??
                 DynamicSchemeVariant.tonalSpot,
           ).harmonized();
           darkColorScheme = ColorScheme.fromSeed(
             seedColor: seedColor,
             brightness: Brightness.dark,
-            dynamicSchemeVariant: appSettings.themeVariant.variant ??
+            dynamicSchemeVariant:
+                appSettings.themeVariant.variant ??
                 DynamicSchemeVariant.tonalSpot,
           ).harmonized();
         }
 
         //Theme settings
         ThemeData getTheme({bool useDarkMode = false}) {
-          ColorScheme colorScheme =
-              useDarkMode ? darkColorScheme : lightColorScheme;
+          ColorScheme colorScheme = useDarkMode
+              ? darkColorScheme
+              : lightColorScheme;
 
           // Refresh the color scheme for the widgets
           refreshWidgetColorscheme(
@@ -279,8 +345,9 @@ class MainAppState extends State<MainApp> {
                 ),
               },
             ),
-            snackBarTheme:
-                const SnackBarThemeData(behavior: SnackBarBehavior.floating),
+            snackBarTheme: const SnackBarThemeData(
+              behavior: SnackBarBehavior.floating,
+            ),
             tooltipTheme: TooltipThemeData(
               waitDuration: const Duration(milliseconds: 500),
               textStyle: TextStyle(color: colorScheme.onSurface),
@@ -325,14 +392,15 @@ class MainAppState extends State<MainApp> {
           themeMode: appSettings.brightness == ThemeBrightness.system
               ? ThemeMode.system
               : appSettings.brightness == ThemeBrightness.dark
-                  ? ThemeMode.dark
-                  : ThemeMode.light,
+              ? ThemeMode.dark
+              : ThemeMode.light,
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context).copyWith(
               padding: MediaQuery.of(context).padding.copyWith(
-                    top: MediaQuery.of(context).padding.top +
-                        (Platform.isMacOS ? 28 : 0),
-                  ),
+                top:
+                    MediaQuery.of(context).padding.top +
+                    (Platform.isMacOS ? 28 : 0),
+              ),
             ),
             child: ScrollConfiguration(
               behavior: Platform.isIOS || Platform.isMacOS
@@ -341,26 +409,7 @@ class MainAppState extends State<MainApp> {
               child: Layout(child: child!),
             ),
           ),
-          home: (() {
-            if (appSettings.activeProfileUuid == null &&
-                isar.profiles.countSync() == 0) {
-              // No profile was found, so we will show the introduction screen
-              return const VerticalIntroductionScreen();
-            } else {
-              // An account was found, so we will show the starting view that the
-              // user configured
-              Destination selectedDesination =
-                  destinations(activeProfile.account.value!.permissions)
-                      .expand((e) => e.destinations)
-                      .toList()[activeProfile.settings.startingPageIndex];
-
-              // The [onPopToggleDrawer] is used to show the drawer when the back
-              // button is pressed in Android.
-              return onPopToggleDrawer(
-                child: selectedDesination.view,
-              );
-            }
-          })(),
+          home: _initialHome(),
         );
       },
     );

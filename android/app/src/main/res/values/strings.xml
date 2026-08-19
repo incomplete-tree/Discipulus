@@ -1,3 +1,4 @@
 <resources>
     <string name="widget_description">Zie waar je volgende les of lessen zijn</string>
+    <string name="widget_event_indicator">Type van de volgende les</string>
 </resources>

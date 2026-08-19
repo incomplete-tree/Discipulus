@@ -1,0 +1,208 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Semantic version to release, for example 1.2.3'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: '3.47.0'
+  PHONE_APPLICATION_ID: dev.harrydekat.discipulus
+  WEAR_APPLICATION_ID: dev.harrydekat.discipulus
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install pinned Android SDK components
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager \
+            'platform-tools' \
+            'platforms;android-36' \
+            'build-tools;36.0.0' \
+            'ndk;27.0.12077973' \
+            'cmake;3.31.6'
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            clang cmake ninja-build pkg-config libgtk-3-dev libepoxy-dev \
+            libsecret-1-dev libwebkit2gtk-4.1-dev libx11-dev libxcomposite-dev libxdamage-dev \
+            libxfixes-dev libxrandr-dev liblzma-dev
+
+      - name: Resolve release version
+        id: version
+        shell: bash
+        env:
+          MANUAL_VERSION: ${{ inputs.version }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            version="$MANUAL_VERSION"
+          else
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Expected a semantic version like 1.2.3, got: $version" >&2
+            exit 1
+          fi
+          {
+            echo "version=$version"
+            echo "tag=v$version"
+            echo "build_number=$GITHUB_RUN_NUMBER"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Configure production signing
+        shell: bash
+        env:
+          CM_KEYSTORE_BASE64: ${{ secrets.CM_KEYSTORE_BASE64 }}
+          CM_KEYSTORE_PASSWORD: ${{ secrets.CM_KEYSTORE_PASSWORD }}
+          CM_KEY_ALIAS: ${{ secrets.CM_KEY_ALIAS }}
+          CM_KEY_PASSWORD: ${{ secrets.CM_KEY_PASSWORD }}
+        run: |
+          test -n "$CM_KEYSTORE_BASE64"
+          test -n "$CM_KEYSTORE_PASSWORD"
+          test -n "$CM_KEY_ALIAS"
+          test -n "$CM_KEY_PASSWORD"
+          keystore_path="$RUNNER_TEMP/discipulus-release.jks"
+          printf '%s' "$CM_KEYSTORE_BASE64" | base64 --decode > "$keystore_path"
+          test -s "$keystore_path"
+          keytool -list -keystore "$keystore_path" \
+            -storepass "$CM_KEYSTORE_PASSWORD" \
+            -alias "$CM_KEY_ALIAS" >/dev/null
+          {
+            printf 'CM_KEYSTORE_PATH=%s\n' "$keystore_path"
+            printf 'CM_KEYSTORE_PASSWORD=%s\n' "$CM_KEYSTORE_PASSWORD"
+            printf 'CM_KEY_ALIAS=%s\n' "$CM_KEY_ALIAS"
+            printf 'CM_KEY_PASSWORD=%s\n' "$CM_KEY_PASSWORD"
+            printf 'DISCIPULUS_RELEASE_BUILD=true\n'
+          } >> "$GITHUB_ENV"
+
+      - name: Write Gradle local.properties
+        shell: bash
+        run: |
+          android_sdk="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$android_sdk"
+          test -n "${FLUTTER_ROOT:-}"
+          {
+            printf 'sdk.dir=%s\n' "$android_sdk"
+            printf 'flutter.sdk=%s\n' "$FLUTTER_ROOT"
+          } > android/local.properties
+
+      - name: Resolve Dart packages
+        run: flutter pub get
+
+      - name: Build Linux bundle
+        run: |
+          flutter build linux --release \
+            --build-name="${{ steps.version.outputs.version }}" \
+            --build-number="${{ steps.version.outputs.build_number }}"
+
+      - name: Build phone APK
+        run: |
+          flutter build apk --release \
+            --build-name="${{ steps.version.outputs.version }}" \
+            --build-number="${{ steps.version.outputs.build_number }}"
+
+      - name: Build Wear OS APK
+        working-directory: android
+        run: |
+          ./gradlew \
+            -PwearVersionName="${{ steps.version.outputs.version }}" \
+            -PwearVersionCode="${{ steps.version.outputs.build_number }}" \
+            :wear:assembleRelease --no-daemon
+
+      - name: Package and validate release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          mkdir -p dist/linux/discipulus
+          cp -a build/linux/x64/release/bundle/. dist/linux/discipulus/
+          install -m 0755 linux/packaging/install.sh dist/linux/install.sh
+          cp linux/packaging/dev.harrydekat.discipulus.desktop dist/linux/
+          cp linux/packaging/dev.harrydekat.discipulus.appdata.xml dist/linux/
+          cp icon.svg dist/linux/
+          cp build/app/outputs/flutter-apk/app-release.apk dist/Discipulus-android.apk
+          cp build/wear/outputs/apk/release/wear-release.apk \
+            dist/Discipulus-wearos.apk
+
+          test -x dist/linux/discipulus/discipulus
+          test -f dist/linux/dev.harrydekat.discipulus.desktop
+          test -f dist/linux/dev.harrydekat.discipulus.appdata.xml
+          test -f dist/linux/icon.svg
+          test -s dist/Discipulus-android.apk
+          test -s dist/Discipulus-wearos.apk
+
+          tar -C dist/linux -czf dist/Discipulus-linux-x64.tar.gz \
+            discipulus install.sh \
+            dev.harrydekat.discipulus.desktop \
+            dev.harrydekat.discipulus.appdata.xml icon.svg
+
+          android_sdk="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$android_sdk"
+          unzip -t dist/Discipulus-android.apk >/dev/null
+          unzip -t dist/Discipulus-wearos.apk >/dev/null
+          phone_id="$("$android_sdk/build-tools/36.0.0/aapt" dump badging \
+            dist/Discipulus-android.apk | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p" | head -n1)"
+          wear_id="$("$android_sdk/build-tools/36.0.0/aapt" dump badging \
+            dist/Discipulus-wearos.apk | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p" | head -n1)"
+          test "$phone_id" = "$PHONE_APPLICATION_ID"
+          test "$wear_id" = "$WEAR_APPLICATION_ID"
+          file dist/Discipulus-linux-x64.tar.gz dist/Discipulus-android.apk \
+            dist/Discipulus-wearos.apk
+          sha256sum dist/Discipulus-linux-x64.tar.gz \
+            dist/Discipulus-android.apk dist/Discipulus-wearos.apk > dist/SHA256SUMS
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: discipulus-${{ steps.version.outputs.tag }}
+          if-no-files-found: error
+          path: |
+            dist/Discipulus-linux-x64.tar.gz
+            dist/Discipulus-android.apk
+            dist/Discipulus-wearos.apk
+            dist/SHA256SUMS
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Discipulus ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          files: |
+            dist/Discipulus-linux-x64.tar.gz
+            dist/Discipulus-android.apk
+            dist/Discipulus-wearos.apk
+            dist/SHA256SUMS

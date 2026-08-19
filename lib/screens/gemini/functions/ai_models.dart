@@ -125,8 +125,13 @@ class AISchema {
   static AISchema number({String? description, bool? nullable}) =>
       AISchema(type: "number", description: description, nullable: nullable);
 
-  static AISchema array({required AISchema items, String? description, bool? nullable}) =>
-      AISchema(type: "array", items: items, description: description, nullable: nullable);
+  static AISchema array(
+          {required AISchema items, String? description, bool? nullable}) =>
+      AISchema(
+          type: "array",
+          items: items,
+          description: description,
+          nullable: nullable);
 
   static AISchema enumString({
     required List<String> enumValues,

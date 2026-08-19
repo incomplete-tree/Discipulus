@@ -67,17 +67,20 @@ class AccountMigration {
     // This means 100% of the grades are unrevealed (unrevealedCount == totalGrades).
     // Once any grade is revealed or newly synced, this condition becomes false and the migration never runs again.
     try {
-      final unrevealedCount = await isar.grades.filter().wasRevealedEqualTo(false).count();
+      final unrevealedCount =
+          await isar.grades.filter().wasRevealedEqualTo(false).count();
       final totalGrades = await isar.grades.count();
       if (totalGrades > 0 && unrevealedCount == totalGrades) {
-        final allUnrevealed = await isar.grades.filter().wasRevealedEqualTo(false).findAll();
+        final allUnrevealed =
+            await isar.grades.filter().wasRevealedEqualTo(false).findAll();
         await isar.writeTxn(() async {
           for (var grade in allUnrevealed) {
             grade.wasRevealed = true;
           }
           await isar.grades.putAll(allUnrevealed);
         });
-        print("Migrated ${allUnrevealed.length} old grades to 'revealed' state.");
+        print(
+            "Migrated ${allUnrevealed.length} old grades to 'revealed' state.");
       }
     } catch (e) {
       print("Failed to migrate old grades wasRevealed state: $e");

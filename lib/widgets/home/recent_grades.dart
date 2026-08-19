@@ -50,7 +50,6 @@ class _RecentGradesState extends State<RecentGrades> {
                         )),
                   ],
                 ))
-            
       ],
     );
   }

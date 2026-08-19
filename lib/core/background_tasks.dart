@@ -45,7 +45,7 @@ class BackgroundRefresh {
               0) {
             await profile.getSchoolyears();
           }
-        })
+        }),
     ]);
     for (Profile profile in refreshingProfiles) {
       if (await profile.schoolyears
@@ -59,8 +59,9 @@ class BackgroundRefresh {
 
     // Remove accounts that do not need a refresh
     if (onlyRefreshNeeded) {
-      refreshingProfiles
-          .removeWhere((profile) => !shouldRefresh(profiles: [profile]));
+      refreshingProfiles.removeWhere(
+        (profile) => !shouldRefresh(profiles: [profile]),
+      );
     }
 
     // Run garbagecollector
@@ -82,7 +83,7 @@ class BackgroundRefresh {
         if (profile.settings.eventsNotifications)
           _quickRefreshCalendar(profile, enableNotifcations),
 
-        if (profile.settings.remindNotifications) scheduleReminders(profile)
+        if (profile.settings.remindNotifications) scheduleReminders(profile),
       ]);
 
       //Updated last refresh time
@@ -98,47 +99,54 @@ class BackgroundRefresh {
   /// Checks if a refresh should take place
   static bool shouldRefresh({List<Profile>? profiles}) {
     // List of the latest refresh times
-    List<DateTime> lastRefreshTimes =
-        [...?profiles?.map((e) => e.settings.lastRefresh)].nonNulls.toList();
+    List<DateTime> lastRefreshTimes = [
+      ...?profiles?.map((e) => e.settings.lastRefresh),
+    ].nonNulls.toList();
 
     // If any of these time is more than 30 minutes ago a refresh should take place
-    return lastRefreshTimes
-        .any((time) => DateTime.now().difference(time).inMinutes >= 30);
+    return lastRefreshTimes.any(
+      (time) => DateTime.now().difference(time).inMinutes >= 30,
+    );
   }
 
   /// Updates the native widgets for the activeProfile.
   static Future<void> updateWidgets() async {
-    int profileUUID =
-        appSettings.activeProfileUuidWidgets ?? activeProfile.uuid;
-    if ((Platform.isIOS || Platform.isMacOS)) {
-      List<CalendarEvent> events = await (await isar.profiles
+    if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
+      final profileUUID =
+          appSettings.activeProfileUuidWidgets ?? appSettings.activeProfileUuid;
+      final profile = profileUUID == null
+          ? await isar.profiles.filter().not().accountIsNull().findFirst()
+          : await isar.profiles.filter().uuidEqualTo(profileUUID).findFirst();
+      final List<CalendarEvent> events = profile == null
+          ? []
+          : await profile.calendarEvents
               .filter()
-              .uuidEqualTo(profileUUID)
-              .findFirst())!
-          .calendarEvents
-          .filter()
-          .startGreaterThan(DateTime.now().subtract(const Duration(days: 1)))
-          .eindeLessThan(DateTime.now().add(const Duration(days: 28)))
-          .sortByStart()
-          .limit(40)
-          .findAll();
+              .startGreaterThan(
+                DateTime.now().subtract(const Duration(days: 1)),
+              )
+              .eindeLessThan(DateTime.now().add(const Duration(days: 28)))
+              .sortByStart()
+              .limit(40)
+              .findAll();
       await HomeWidget.saveWidgetData<List<Map<String, dynamic>>>(
         'events',
         events
             .where((e) => !e.isCanceled) // filter cancelled lessons
             .combineEvents()
-            .map((e) => {
-                  'id': e.first.id,
-                  'name': e.first.title,
-                  'shortName': e.first.subject.value?.afkorting,
-                  'location': e.first.lokatie?.nullOnEmpty,
-                  'startHourIndicator': e.first.lesuurVan,
-                  'endHourIndicator': e.last.lesuurTotMet,
-                  'infoType': e.first.infoType.index,
-                  'startTime': e.first.start.millisecondsSinceEpoch,
-                  'endTime': e.last.einde.millisecondsSinceEpoch,
-                  'isCompleted': e.first.afgerond
-                }..removeWhere((key, value) => value == null))
+            .map(
+              (e) => {
+                'id': e.first.id,
+                'name': e.first.title,
+                'shortName': e.first.subject.value?.afkorting,
+                'location': e.first.lokatie?.nullOnEmpty,
+                'startHourIndicator': e.first.lesuurVan,
+                'endHourIndicator': e.last.lesuurTotMet,
+                'infoType': e.first.infoType.index,
+                'startTime': e.first.start.millisecondsSinceEpoch,
+                'endTime': e.last.einde.millisecondsSinceEpoch,
+                'isCompleted': e.first.afgerond,
+              }..removeWhere((key, value) => value == null),
+            )
             .toList(),
       );
       await HomeWidget.updateWidget(
@@ -154,10 +162,11 @@ class BackgroundRefresh {
 
 /// Refreshes the colorScheme that is used for the widgets for macOS, iOS and
 /// Android
-Future<void> refreshWidgetColorscheme(
-    {required ColorScheme lightColorScheme,
-    required ColorScheme darkColorScheme}) async {
-  if (Platform.isIOS || Platform.isMacOS) {
+Future<void> refreshWidgetColorscheme({
+  required ColorScheme lightColorScheme,
+  required ColorScheme darkColorScheme,
+}) async {
+  if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
     await HomeWidget.saveWidgetData<Map<String, int>>("colors", {
       "background": lightColorScheme.surface.toARGB32(),
       "primary": lightColorScheme.primary.toARGB32(),
@@ -166,23 +175,28 @@ Future<void> refreshWidgetColorscheme(
       "secondary": lightColorScheme.secondary.toARGB32(),
       "darkBackground": darkColorScheme.surface.toARGB32(),
       "darkPrimary": darkColorScheme.primary.toARGB32(),
-      "darkDone": Colors.green.harmonizeWith(darkColorScheme.primary).toARGB32(),
+      "darkDone":
+          Colors.green.harmonizeWith(darkColorScheme.primary).toARGB32(),
       "darkTest": darkColorScheme.tertiary.toARGB32(),
-      "darkSecondary": darkColorScheme.secondary.toARGB32()
+      "darkSecondary": darkColorScheme.secondary.toARGB32(),
     });
   }
 }
 
 /// Refresh messages
 Future<void> _quickRefreshMessages(
-    Profile profile, bool enableNotifcations) async {
+  Profile profile,
+  bool enableNotifcations,
+) async {
   await (await profile.berichtMappen.filter().idEqualTo(1).findFirst())
       ?.getMessages();
 }
 
 /// Refresh grades for last schoolyear
 Future<void> _quickRefreshGrades(
-    Profile profile, bool enableNotifcations) async {
+  Profile profile,
+  bool enableNotifcations,
+) async {
   // Last schoolyear
   Schoolyear? schoolyear =
       await profile.schoolyears.filter().sortByEindeDesc().findFirst();
@@ -204,13 +218,15 @@ Future<void> _quickRefreshGrades(
   // Send notifications
   if ((gradesAfter?.isNotEmpty ?? false) && enableNotifcations) {
     Set<String> subjectNames = gradesAfter!
-        .map((e) => schoolyear!.grades
-            .filter()
-            .idEqualTo(e)
-            .findFirstSync()!
-            .subject
-            .value!
-            .naam)
+        .map(
+          (e) => schoolyear!.grades
+              .filter()
+              .idEqualTo(e)
+              .findFirstSync()!
+              .subject
+              .value!
+              .naam,
+        )
         .toSet();
 
     NotificationController.createNotification(
@@ -219,7 +235,7 @@ Future<void> _quickRefreshGrades(
         channel: NotificationChannel.grades,
         title: [
           'Nieuwe cijfers gevonden',
-          if (await isar.profiles.count() >= 2) 'voor ${profile.name}'
+          if (await isar.profiles.count() >= 2) 'voor ${profile.name}',
         ].join(" "),
         body: gradesAfter.length == 1
             ? profile.settings.spoilerGradeNotfications
@@ -247,7 +263,8 @@ Future<void> _runGarbageCollector() async {
         .filter()
         .rawSavedPathIsNotNull()
         .lastUsedLessThan(
-            DateTime.now().subtract(Duration(days: appSettings.autoRemoveDate)))
+          DateTime.now().subtract(Duration(days: appSettings.autoRemoveDate)),
+        )
         .findAll();
     for (Bron bron in toBeRemoved) {
       bron.remove();

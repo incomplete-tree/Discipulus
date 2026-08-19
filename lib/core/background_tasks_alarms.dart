@@ -115,7 +115,8 @@ class BackgroundScheduler {
 
     List<Profile> profiles = await isar.profiles
         .filter()
-        .settings((q) => q.useAutoDNDEqualTo(true).or().smartAlarmEnabledEqualTo(true))
+        .settings((q) =>
+            q.useAutoDNDEqualTo(true).or().smartAlarmEnabledEqualTo(true))
         .findAll();
 
     for (Profile p in profiles) {

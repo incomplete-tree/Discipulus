@@ -202,7 +202,8 @@ class _MessageScreenState extends State<MessageScreen> with ExternalRefresh {
 
   List<Widget> _messageChips() {
     return [
-      if ((appSettings.useLocalAI || appSettings.openRouterAPIKey != null) && widget.message.inhoud != null)
+      if ((appSettings.useLocalAI || appSettings.openRouterAPIKey != null) &&
+          widget.message.inhoud != null)
         ActionChip(
           side: BorderSide(
               color: Theme.of(context).colorScheme.tertiaryContainer),

@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.wear.compose.material.TimeText
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.TimeText
@@ -35,43 +34,44 @@ class WearAppActivity : ComponentActivity() {
                 )
 
                 AppScaffold(
-                    timeText = { TimeText() }
-                ) {
-                    SwipeDismissableNavHost(
-                        navController = navController,
-                        startDestination = "home",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.background)
-                    ) {
-                        composable("home") {
-                            ContentView(
-                                viewModel = wearViewModel,
-                                onNavigateToSchedule = { navController.navigate("schedule") },
-                                onNavigateToGrades = { navController.navigate("grades") },
-                                onNavigateToSettings = { navController.navigate("settings") }
-                            )
-                        }
-                        composable("schedule") {
-                            ScheduleListView(viewModel = wearViewModel)
-                        }
-                        composable("grades") {
-                            GradesListView(
-                                viewModel = wearViewModel,
-                                onNavigateToGradeDetail = { navController.navigate("grade_detail") }
-                            )
-                        }
-                        composable("settings") {
-                            SettingsView(viewModel = wearViewModel)
-                        }
-                        composable("grade_detail") {
-                            val selectedGrade by wearViewModel.selectedGrade.collectAsState()
-                            selectedGrade?.let { grade ->
-                                GradeDetailView(grade = grade)
+                    timeText = { TimeText {} },
+                    content = {
+                        SwipeDismissableNavHost(
+                            navController = navController,
+                            startDestination = "home",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background)
+                        ) {
+                            composable("home") {
+                                ContentView(
+                                    viewModel = wearViewModel,
+                                    onNavigateToSchedule = { navController.navigate("schedule") },
+                                    onNavigateToGrades = { navController.navigate("grades") },
+                                    onNavigateToSettings = { navController.navigate("settings") }
+                                )
+                            }
+                            composable("schedule") {
+                                ScheduleListView(viewModel = wearViewModel)
+                            }
+                            composable("grades") {
+                                GradesListView(
+                                    viewModel = wearViewModel,
+                                    onNavigateToGradeDetail = { navController.navigate("grade_detail") }
+                                )
+                            }
+                            composable("settings") {
+                                SettingsView(viewModel = wearViewModel)
+                            }
+                            composable("grade_detail") {
+                                val selectedGrade by wearViewModel.selectedGrade.collectAsState()
+                                selectedGrade?.let { grade ->
+                                    GradeDetailView(grade = grade)
+                                }
                             }
                         }
                     }
-                }
+                )
             }
         }
     }

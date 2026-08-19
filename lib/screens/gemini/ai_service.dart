@@ -16,7 +16,8 @@ class AIService {
     } else if (appSettings.openRouterAPIKey != null) {
       return _sendOpenRouter(history, systemInstruction, tools: tools);
     } else {
-      throw Exception('Geen AI provider geconfigureerd (Lokale AI uit en geen OpenRouter API key).');
+      throw Exception(
+          'Geen AI provider geconfigureerd (Lokale AI uit en geen OpenRouter API key).');
     }
   }
 
@@ -34,7 +35,8 @@ class AIService {
     String fullPrompt = "";
     for (var content in history) {
       final role = content.role == "model" ? "Assistant" : "User";
-      final text = content.parts.whereType<AITextPart>().map((p) => p.text).join("\n");
+      final text =
+          content.parts.whereType<AITextPart>().map((p) => p.text).join("\n");
       fullPrompt += "$role: $text\n";
     }
     fullPrompt += "Assistant: ";
@@ -53,7 +55,8 @@ class AIService {
     List<AIFunctionDeclaration>? tools,
     int depth = 0,
   }) async {
-    if (depth > 5) return "Te veel functie aanroepen, stoppen om oneindige loop te voorkomen.";
+    if (depth > 5)
+      return "Te veel functie aanroepen, stoppen om oneindige loop te voorkomen.";
 
     final List<Map<String, dynamic>> messages = [
       systemInstruction.toOpenRouterJson(),
@@ -73,7 +76,8 @@ class AIService {
         final toolCalls = message['tool_calls'] as List;
 
         // Add the assistant's request for tool calls to history
-        history.add(AIContent(role: "model", parts: [AITextPart(message['content'] ?? "")])
+        history.add(AIContent(
+            role: "model", parts: [AITextPart(message['content'] ?? "")])
           ..extra = {"tool_calls": toolCalls});
 
         for (var toolCall in toolCalls) {
@@ -89,7 +93,8 @@ class AIService {
         }
 
         // Recursively call to get the final response
-        return _sendOpenRouter(history, systemInstruction, tools: tools, depth: depth + 1);
+        return _sendOpenRouter(history, systemInstruction,
+            tools: tools, depth: depth + 1);
       }
 
       return message['content'] ?? "";

@@ -56,7 +56,8 @@ Future<String?> summarizeText(
             {
               "type": "image_url",
               "image_url": {
-                "url": "data:${bron.contentType};base64,${base64Encode(bron.localFile!.readAsBytesSync())}"
+                "url":
+                    "data:${bron.contentType};base64,${base64Encode(bron.localFile!.readAsBytesSync())}"
               }
             }
         ]

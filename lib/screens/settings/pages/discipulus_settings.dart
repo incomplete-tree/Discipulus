@@ -215,10 +215,10 @@ class _DiscipulusSettingsPageState extends State<DiscipulusSettingsPage> {
                       filled: true,
                       hintText: appSettings.openRouterModel,
                     ),
-                      onChanged: (value) => appSettings
-                        ..openRouterModel = value.nullOnEmpty ??
-                            "google/gemma-3-27b-it:free"
-                        ..save(),
+                    onChanged: (value) => appSettings
+                      ..openRouterModel =
+                          value.nullOnEmpty ?? "google/gemma-3-27b-it:free"
+                      ..save(),
                   ),
                   const Text(
                     "Aanbevolen modellen:",

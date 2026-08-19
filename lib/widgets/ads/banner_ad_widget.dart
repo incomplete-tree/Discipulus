@@ -89,7 +89,10 @@ class BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (!Platform.isIOS || _bannerAd == null || !_isLoaded || activeProfile.isUnderage) {
+    if (!Platform.isIOS ||
+        _bannerAd == null ||
+        !_isLoaded ||
+        activeProfile.isUnderage) {
       return const SizedBox.shrink();
     }
 

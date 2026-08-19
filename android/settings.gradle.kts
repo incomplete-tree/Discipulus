@@ -18,8 +18,10 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("com.android.application") version "8.9.1" apply false
-    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
+    id("com.android.application") version "8.11.1" apply false
+    // Kotlin 2.3.x matches AGP 8.11.x and the Gradle 8.14 wrapper API.
+    id("org.jetbrains.kotlin.android") version "2.3.0" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "2.3.0" apply false
 }
 
-include(":app")
+include(":app", ":wear")

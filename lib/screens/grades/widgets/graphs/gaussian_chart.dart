@@ -329,7 +329,8 @@ class _GaussianCurveChartState extends State<GaussianCurveChart> {
                   (curveData) => LineChartBarData(
                     spots: curveData.spots,
                     isCurved: true,
-                    color: onSurfaceVariant.withValues(alpha: 0.4), // Grayed out
+                    color:
+                        onSurfaceVariant.withValues(alpha: 0.4), // Grayed out
                     barWidth: 1.5, // Thinner
                     isStrokeCapRound: true,
                     dotData: const FlDotData(show: false),

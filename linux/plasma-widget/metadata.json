@@ -1,0 +1,19 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "",
+                "Name": "Discipulus"
+            }
+        ],
+        "Category": "Education",
+        "Description": "Quick access to Discipulus school views",
+        "Icon": "view-calendar",
+        "Id": "dev.harrydekat.discipulus.widget",
+        "License": "GPL-3.0-or-later",
+        "Name": "Discipulus",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

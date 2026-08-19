@@ -195,11 +195,10 @@ class CalendarEvent {
               ? []
               : List<Docenten>.from(
                   json["Docenten"].map((x) => Docenten.fromMap(x))),
-          lokalen:
-              json["Lokalen"] == null
-                  ? []
-                  : List<Lokalen>.from(
-                      json["Lokalen"].map((x) => Lokalen.fromMap(x))),
+          lokalen: json["Lokalen"] == null
+              ? []
+              : List<Lokalen>.from(
+                  json["Lokalen"].map((x) => Lokalen.fromMap(x))),
           opdrachtId: json["OpdrachtId"],
           heeftBijlagen: json["HeeftBijlagen"],
           afwezigheid: json["Afwezigheid"] != null
@@ -235,7 +234,8 @@ class CalendarEvent {
   factory CalendarEvent.fromExtensionMap(
           Map<String, dynamic> json, String magisterUuid) =>
       CalendarEvent(
-        id: "ext_${json["id"]}".hashCode, // New events don't have an int id, but a string UUID
+        id: "ext_${json["id"]}"
+            .hashCode, // New events don't have an int id, but a string UUID
         extId: json["id"],
         magisterUuid: magisterUuid,
         start: DateTime.parse(json["start"]).toUtc(),
@@ -264,7 +264,9 @@ class CalendarEvent {
             .toList(),
         docenten: (json["participants"] as List?)
             ?.where((e) => e["type"] == "staffMember")
-            .map((e) => Docenten(naam: "${e["firstName"]} ${e["lastName"]}", docentcode: e["code"]))
+            .map((e) => Docenten(
+                naam: "${e["firstName"]} ${e["lastName"]}",
+                docentcode: e["code"]))
             .toList(),
         lokalen: (json["locations"] as List?)
             ?.map((e) => Lokalen(naam: e["description"]))

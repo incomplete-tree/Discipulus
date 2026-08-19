@@ -572,7 +572,8 @@ class LayoutState extends State<Layout>
           .filter()
           .wasRevealedEqualTo(false)
           .useable()
-          .schoolyear((q) => q.profile((q) => q.uuidEqualTo(activeProfile.uuid)))
+          .schoolyear(
+              (q) => q.profile((q) => q.uuidEqualTo(activeProfile.uuid)))
           .findAll();
 
       if (unrevealedGrades.isNotEmpty) {

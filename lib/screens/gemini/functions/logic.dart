@@ -119,7 +119,8 @@ Future<Map<String, dynamic>> searchMessages(AIFunctionCall functionCall) async {
   };
 }
 
-Future<Map<String, dynamic>> getMessageDetail(AIFunctionCall functionCall) async {
+Future<Map<String, dynamic>> getMessageDetail(
+    AIFunctionCall functionCall) async {
   final messageId = int.tryParse(functionCall.args['id'].toString());
   if (messageId == null) {
     return {'error': true, 'message': 'Invalid message ID'};
@@ -310,7 +311,8 @@ Future<Map<String, dynamic>> getStudiewijzers() async {
   };
 }
 
-Future<Map<String, dynamic>> editStudiewijzer(AIFunctionCall functionCall) async {
+Future<Map<String, dynamic>> editStudiewijzer(
+    AIFunctionCall functionCall) async {
   final studiewijzerId = int.parse(functionCall.args['id'].toString());
   final name = functionCall.args['name']?.toString();
   final emoji = functionCall.args['emoji']?.toString();

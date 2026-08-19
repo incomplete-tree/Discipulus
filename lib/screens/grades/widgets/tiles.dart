@@ -385,9 +385,13 @@ class _RevealGradeAvatarState extends State<RevealGradeAvatar>
             // Phase 2: Decelerating Sparks (Apex Climb) - Distinct >100ms clicks
             Duration(milliseconds: 150), // Pause → Tick 1 at 1350ms
             Duration(milliseconds: 10), // Tick 1
-            Duration(milliseconds: 240), // Pause → Tick 2 at 1600ms (color starts changing)
+            Duration(
+                milliseconds:
+                    240), // Pause → Tick 2 at 1600ms (color starts changing)
             Duration(milliseconds: 10), // Tick 2
-            Duration(milliseconds: 390), // Pause → Pop at 2000ms (color fully revealed)
+            Duration(
+                milliseconds:
+                    390), // Pause → Pop at 2000ms (color fully revealed)
             // Phase 3: The Explosion (Apex Pop) - Gentle 150 amplitude pop
             Duration(milliseconds: 40),
           ],
@@ -447,9 +451,11 @@ class _RevealGradeAvatarState extends State<RevealGradeAvatar>
             // Phase 2: Decelerating Sparks (Apex Climb) - Distinct >100ms clicks
             .pause(const Duration(milliseconds: 150)) // Tick 1 at 1350ms
             .tap(intensity: 0.35, sharpness: 0.5)
-            .pause(const Duration(milliseconds: 240)) // Tick 2 at 1600ms (color starts changing)
+            .pause(const Duration(
+                milliseconds: 240)) // Tick 2 at 1600ms (color starts changing)
             .tap(intensity: 0.15, sharpness: 0.3)
-            .pause(const Duration(milliseconds: 390)) // Pop at 2000ms (color fully revealed)
+            .pause(const Duration(
+                milliseconds: 390)) // Pop at 2000ms (color fully revealed)
             // Phase 3: The Explosion (Apex Pop) - Gentle 150 amplitude pop
             .continuous(
               duration: const Duration(milliseconds: 80),

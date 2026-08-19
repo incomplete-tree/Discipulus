@@ -1,0 +1,27 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Discipulus
+GenericName=School planner
+Comment=Open-source Magister client for your school schedule and grades
+Exec=discipulus %U
+Icon=dev.harrydekat.discipulus
+Terminal=false
+StartupNotify=true
+StartupWMClass=dev.harrydekat.discipulus
+Categories=Education;Office;
+Keywords=school;Magister;calendar;grades;messages;
+MimeType=x-scheme-handler/discipulus;
+Actions=Calendar;Grades;Messages;
+
+[Desktop Action Calendar]
+Name=Open today's schedule
+Exec=discipulus --route=calendar
+
+[Desktop Action Grades]
+Name=Open recent grades
+Exec=discipulus --route=grades
+
+[Desktop Action Messages]
+Name=Open messages
+Exec=discipulus --route=messages

@@ -107,6 +107,63 @@ flutter build <platform>
 
 Voor meer details over het bouwen voor jouw platform, kun je het beste de [officiële Flutter-gids](https://flutter.dev/docs/get-started/install) checken.
 
+## Linux, Android en Wear OS bouwen
+
+De release-builds gebruiken Flutter **3.47.0 stable**. Installeer op Linux
+naast Flutter ook Java 17, Android SDK platform 36, build-tools 36.0.0, NDK
+27.0.12077973, CMake/Ninja en de GTK 3 development libraries. Daarna:
+
+```bash
+flutter pub get
+dart format --set-exit-if-changed lib test
+flutter analyze --no-fatal-infos --no-fatal-warnings
+flutter test
+flutter build linux --release
+flutter build apk --release
+cd android
+./gradlew :wear:assembleRelease --no-daemon
+```
+
+`android/local.properties` is machine-specifiek en hoort niet in Git. Voor een
+handmatige Gradle-build bevat het minimaal `sdk.dir` en `flutter.sdk`. Voor
+Flutter's Android build-opdracht moet daarnaast je SDK vindbaar zijn via
+`ANDROID_SDK_ROOT` (of een eenmalige `flutter config --android-sdk` instelling).
+
+### Linux / KDE Plasma
+
+Pak `Discipulus-linux-x64.tar.gz` uit en voer als normale gebruiker uit:
+
+```bash
+./install.sh
+```
+
+De installer zet de bundle, launcher, AppStream metadata en het pictogram in
+de user data directory en maakt een `discipulus`-commando in
+`~/.local/bin`. De KDE launcher bevat acties voor Kalender, Recente cijfers en
+Berichten. `discipulus://calendar` wordt door de single-instance GTK-host naar
+de kalenderweergave gestuurd; gewone `%U` launches blijven geldig.
+
+### Android widgets
+
+Installeer de phone APK, voeg **Discipulus** toe vanuit de widgetkiezer en
+resize de widget naar small, medium of rectangular. De widget gebruikt de
+event-snapshot van de bestaande Flutter background refresh, is veilig bij lege
+of ongeldige data en opent de kalender bij een tik. Kleuren volgen de lichte
+of donkere launcherweergave.
+
+### Wear OS en releases
+
+De Wear APK wordt gebouwd uit `android/wear` en gebruikt dezelfde release
+signing identity als de phone APK. Voor een publieke GitHub Release configureer
+je deze Actions secrets: `CM_KEYSTORE_BASE64`, `CM_KEYSTORE_PASSWORD`,
+`CM_KEY_ALIAS` en `CM_KEY_PASSWORD`. De release workflow accepteert
+`v1.2.3` tags en handmatige dispatches, controleert beide application IDs,
+maakt SHA-256 checksums en publiceert de Linux, phone en Wear artifacts.
+
+De Fleather dependency gebruikt tijdelijk een publieke Git commit met de
+Flutter 3.47 TextInputClient-compatibiliteitsfix; vervang deze pin pas wanneer
+de fix in een officiële Fleather release zit.
+
 ## Wil je Bijdragen? Super!
 
 Ik waardeer elke bijdrage aan Discipulus enorm. Hier zijn een paar dingen om in gedachten te houden:
@@ -118,12 +175,6 @@ Ik waardeer elke bijdrage aan Discipulus enorm. Hier zijn een paar dingen om in 
 ## Bekende Problemen
 
 - **Bekend Probleem**: Push-notificaties werken momenteel niet optimaal vanwege beperkingen met de Magister-API. De huidige notificaties zijn gebaseerd op achtergrondverwerking, wat minder efficiënt is. Als je een oplossing kunt vinden om push-notificaties te integreren, dan zou dat geweldig zijn! 🚀
-
-## AI policy
-
-Discipulus is grotendeels zonder gebruik van AI geschreven, maar dit was meer omdat dit destijds gewoon kort gezegd nog niet goed genoeg was om te gebruiken. Aanpassingen maken of code toevoegen met AI en dan een PR maken is wat mij betreft hartstikke welkom **zolang je maar weet wat de aanpassingen van de LLM inhouden en je zelf de code en de werking controleert**. Het is ook belangrijk dat de code nog wel dezelfde structuur aanhoudt zoals die er nu gebruikt wordt (b.v.b [`ScaffoldSkeleton({`](lib/widgets/global/scaffold_skeleton.dart), alles in [`extentions.dart`](lib/utils/extensions.dart), dingen in [lib/widgets/global](lib/widgets/global), etc.), er is namelijk een kans dat een LLM zijn eigen plan gaat trekken en dit niet gebruikt.
-
-Laat een LLM je een goed beginnetje geven, je helpen met problemen en je laten adviseren, maar zorg ervoor dat *jij* de alwetende verteller blijft.
 
 ## Bedankjes
 

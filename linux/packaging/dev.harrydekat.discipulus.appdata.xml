@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.harrydekat.discipulus</id>
+  <name>Discipulus</name>
+  <summary>Open-source Magister client for Linux</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <url type="homepage">https://github.com/DiscipulusApp/Discipulus</url>
+  <launchable type="desktop-id">dev.harrydekat.discipulus.desktop</launchable>
+  <provides>
+    <binary>discipulus</binary>
+  </provides>
+  <categories>
+    <category>Education</category>
+  </categories>
+  <description>
+    <p>View your school schedule, grades, messages, and learning materials in a fast cross-platform client.</p>
+  </description>
+</component>

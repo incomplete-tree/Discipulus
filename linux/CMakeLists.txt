@@ -8,6 +8,7 @@ set(BINARY_NAME "discipulus")
 # The unique GTK application identifier for this application. See:
 # https://wiki.gnome.org/HowDoI/ChooseApplicationID
 set(APPLICATION_ID "dev.harrydekat.discipulus")
+set(PACKAGING_DIR "${CMAKE_CURRENT_SOURCE_DIR}/packaging")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
@@ -96,7 +97,11 @@ include(flutter/generated_plugins.cmake)
 # By default, "installing" just makes a relocatable bundle in the build
 # directory.
 set(BUILD_BUNDLE_DIR "${PROJECT_BINARY_DIR}/bundle")
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+# Flutter invokes the CMake install target to assemble the relocatable bundle.
+# Keep that target hermetic even when a host CMake supplies its usual
+# /usr/local prefix; an explicit -DCMAKE_INSTALL_PREFIX remains supported.
+if(NOT DEFINED CMAKE_INSTALL_PREFIX OR
+   CMAKE_INSTALL_PREFIX STREQUAL "/usr/local")
   set(CMAKE_INSTALL_PREFIX "${BUILD_BUNDLE_DIR}" CACHE PATH "..." FORCE)
 endif()
 
@@ -131,6 +136,20 @@ install(CODE "
   " COMPONENT Runtime)
 install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
   DESTINATION "${INSTALL_BUNDLE_DATA_DIR}" COMPONENT Runtime)
+
+# Desktop integration metadata. These files make the app discoverable in KDE
+# Plasma's launcher and task manager, and expose quick actions for the most
+# useful destinations.
+install(FILES "${PACKAGING_DIR}/${APPLICATION_ID}.desktop"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}/share/applications"
+  COMPONENT Runtime)
+install(FILES "${PACKAGING_DIR}/${APPLICATION_ID}.appdata.xml"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}/share/metainfo"
+  COMPONENT Runtime)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../icon.svg"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}/share/icons/hicolor/scalable/apps"
+  RENAME "${APPLICATION_ID}.svg"
+  COMPONENT Runtime)
 
 # Install the AOT library on non-Debug builds only.
 if(NOT CMAKE_BUILD_TYPE MATCHES "Debug")

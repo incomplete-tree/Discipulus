@@ -220,7 +220,8 @@ Future<String> handleFunctionCall(AIFunctionCall functionCall) async {
   }
 }
 
-Future<Map<String, dynamic>> _executeFunction(AIFunctionCall functionCall) async {
+Future<Map<String, dynamic>> _executeFunction(
+    AIFunctionCall functionCall) async {
   switch (functionCall.name) {
     case 'writeEmail':
       return writeEmail(functionCall);
