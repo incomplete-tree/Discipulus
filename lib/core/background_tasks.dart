@@ -263,7 +263,6 @@ class BackgroundRefresh {
         );
       }
     }
-  }
 
   static Future<void> _writeLinuxWidgetSnapshot({
     required List<Map<String, dynamic>> events,
