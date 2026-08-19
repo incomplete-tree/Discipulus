@@ -59,12 +59,13 @@ class NavigatorWidgetProvider : HomeWidgetProvider() {
     private fun updateSmallWidget(context: Context, events: List<Event>, currentDate: Date): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_small)
         val currentEvent = events.firstOrNull { it.startTime <= currentDate.time && it.endTime > currentDate.time }
+        val displayedEvent = currentEvent ?: events.firstOrNull { it.startTime > currentDate.time }
 
-        if (currentEvent != null) {
-            views.setTextViewText(R.id.event_location, currentEvent.location ?: "Geen locatie")
-            views.setTextViewText(R.id.event_name, currentEvent.name)
-            views.setTextViewText(R.id.event_time, DateUtils.formatTime(Date(currentEvent.startTime)))
-            views.setTextColor(R.id.event_location, currentEvent.infotypeColor(true))
+        if (displayedEvent != null) {
+            views.setTextViewText(R.id.event_location, displayedEvent.location ?: "Geen locatie")
+            views.setTextViewText(R.id.event_name, displayedEvent.name)
+            views.setTextViewText(R.id.event_time, DateUtils.formatTime(Date(displayedEvent.startTime)))
+            views.setTextColor(R.id.event_location, displayedEvent.infotypeColor(true))
         } else {
             views.setTextViewText(R.id.event_location, "Geen lessen vandaag")
             views.setTextViewText(R.id.event_name, "")
@@ -86,11 +87,12 @@ class NavigatorWidgetProvider : HomeWidgetProvider() {
 
         // Update the small widget part
         val currentEvent = events.firstOrNull { it.startTime <= currentDate.time && it.endTime > currentDate.time }
-        if (currentEvent != null) {
-            views.setTextViewText(R.id.event_location, currentEvent.location ?: "Geen locatie")
-            views.setTextViewText(R.id.event_name, currentEvent.name)
-            views.setTextViewText(R.id.event_time, DateUtils.formatTime(Date(currentEvent.startTime)))
-            views.setTextColor(R.id.event_location, currentEvent.infotypeColor(true))
+        val displayedEvent = currentEvent ?: events.firstOrNull { it.startTime > currentDate.time }
+        if (displayedEvent != null) {
+            views.setTextViewText(R.id.event_location, displayedEvent.location ?: "Geen locatie")
+            views.setTextViewText(R.id.event_name, displayedEvent.name)
+            views.setTextViewText(R.id.event_time, DateUtils.formatTime(Date(displayedEvent.startTime)))
+            views.setTextColor(R.id.event_location, displayedEvent.infotypeColor(true))
         } else {
             views.setTextViewText(R.id.event_location, "Geen lessen vandaag")
             views.setTextViewText(R.id.event_name, "")
@@ -126,7 +128,7 @@ class NavigatorWidgetProvider : HomeWidgetProvider() {
             backgroundDrawable.setColorFilter(upcomingEvent.infotypeColor(), PorterDuff.Mode.SRC_IN)
             views.setImageViewBitmap(R.id.location_circle, backgroundDrawable.constantState!!.newDrawable().mutate().toBitmap())
         } else {
-            views.setTextViewText(R.id.location_circle, "🎉")
+            views.setImageViewResource(R.id.location_circle, android.R.drawable.ic_menu_help)
             views.setTextViewText(R.id.event_name, "Geen lessen gevonden")
             views.setTextViewText(R.id.event_time, "")
         }
