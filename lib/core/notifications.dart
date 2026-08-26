@@ -117,9 +117,16 @@ class NotificationController {
       requestAlertPermission: false,
     );
 
-    const  LinuxInitializationSettings initializationSettingsLinux =
+    const LinuxInitializationSettings initializationSettingsLinux =
         LinuxInitializationSettings(
       defaultActionName: "Open Discipulus",
+    );
+
+    const WindowsInitializationSettings initializationSettingsWindows =
+        WindowsInitializationSettings(
+      appName: "Discipulus",
+      appUserModelId: "dev.harrydekat.discipulus",
+      guid: "3750d4be-ff64-4060-8ac1-49eabae20130",
     );
 
     const InitializationSettings initializationSettings =
@@ -128,6 +135,7 @@ class NotificationController {
       iOS: initializationSettingsDarwin,
       macOS: initializationSettingsDarwin,
       linux: initializationSettingsLinux,
+      windows: initializationSettingsWindows,
     );
     await flutterLocalNotificationsPlugin.initialize(
       settings: initializationSettings,
