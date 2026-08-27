@@ -21,6 +21,15 @@ android {
     }
 
     signingConfigs {
+        getByName("debug") {
+            val testKeystorePath = System.getenv("WEAR_TEST_KEYSTORE_PATH")
+            if (testKeystorePath != null && file(testKeystorePath).exists()) {
+                storeFile = file(testKeystorePath)
+                storePassword = System.getenv("WEAR_TEST_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("WEAR_TEST_KEY_ALIAS")
+                keyPassword = System.getenv("WEAR_TEST_KEY_PASSWORD")
+            }
+        }
         create("release") {
             val keystorePath = System.getenv("CM_KEYSTORE_PATH") ?: "../app/keystore.jks"
             val keystorePassword = System.getenv("CM_KEYSTORE_PASSWORD")
