@@ -1,0 +1,37 @@
+name: Windows launch smoke test
+
+on:
+  workflow_dispatch:
+    inputs:
+      fixed_run_id:
+        description: GitHub Actions run that uploaded the fixed windows-builds artifact
+        required: true
+        default: '33006290305'
+
+jobs:
+  launch-smoke:
+    runs-on: windows-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download baseline v0.2.1
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://github.com/DiscipulusApp/Discipulus/releases/download/v0.2.1/discipulus_windows.zip -OutFile baseline.zip
+          Expand-Archive baseline.zip -DestinationPath baseline -Force
+
+      - name: Download fixed build
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download '${{ inputs.fixed_run_id }}' --repo $env:GITHUB_REPOSITORY --name windows-builds --dir fixed-artifact
+          Expand-Archive fixed-artifact\discipulus_windows.zip -DestinationPath fixed -Force
+
+      - name: Check each app's top-level window visibility
+        shell: pwsh
+        run: |
+          .\tool\windows-launch-smoke.ps1 -BaselineDirectory .\baseline -FixedDirectory .\fixed
