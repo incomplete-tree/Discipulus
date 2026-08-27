@@ -497,6 +497,14 @@ jobs:
         run: |
           flutter build windows --release --build-name=${{ needs.version.outputs.version }} --build-number=${{ needs.version.outputs.build_number }}
 
+      - name: Compare old and fixed window visibility
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://github.com/DiscipulusApp/Discipulus/releases/download/v0.2.1/discipulus_windows.zip -OutFile baseline.zip
+          Expand-Archive baseline.zip -DestinationPath baseline -Force
+          $ReleaseDirectory = if (Test-Path "build\windows\x64\runner\Release") { "build\windows\x64\runner\Release" } else { "build\windows\runner\Release" }
+          .\tool\windows-launch-smoke.ps1 -BaselineDirectory .\baseline -FixedDirectory $ReleaseDirectory
+
       - name: Create Windows ZIP
         shell: powershell
         run: |
