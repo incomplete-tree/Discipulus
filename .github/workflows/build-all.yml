@@ -477,7 +477,7 @@ jobs:
             *.flatpak
 
   build-wear:
-    name: Wear OS test APK
+    name: Phone & Wear OS test APKs
     if: ${{ inputs.wear_only }}
     needs: version
     runs-on: ubuntu-latest
@@ -497,8 +497,12 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Build debug Wear OS APK
+      - name: Build debug phone and Wear OS APKs
         run: |
+          flutter pub get
+          flutter build apk --debug --android-skip-build-dependency-validation \
+            --build-name=${{ needs.version.outputs.version }} \
+            --build-number=${{ needs.version.outputs.build_number }}
           printf 'sdk.dir=%s\nflutter.sdk=%s\n' "$ANDROID_HOME" "$FLUTTER_ROOT" > android/local.properties
           curl --fail --location --retry 3 --silent --show-error \
             https://services.gradle.org/distributions/gradle-8.14.3-bin.zip \
@@ -508,16 +512,20 @@ jobs:
             -PversionName=${{ needs.version.outputs.version }} \
             -PversionCode=${{ needs.version.outputs.build_number }}
           mkdir -p build/wearos
+          cp build/app/outputs/flutter-apk/app-debug.apk \
+            build/wearos/${{ env.APP_NAME }}_phone-debug.apk
           cp "$(find build/wear/outputs/apk/debug -name '*.apk' -print -quit)" \
             build/wearos/${{ env.APP_NAME }}_wearos-debug.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wearos-build
-          path: build/wearos/${{ env.APP_NAME }}_wearos-debug.apk
+          name: phone-wearos-build
+          path: |
+            build/wearos/${{ env.APP_NAME }}_phone-debug.apk
+            build/wearos/${{ env.APP_NAME }}_wearos-debug.apk
 
   publish-wear-release:
-    name: Publish Wear OS test release
+    name: Publish phone & Wear OS test release
     if: ${{ inputs.wear_only }}
     needs: [version, build-wear]
     runs-on: ubuntu-latest
@@ -526,14 +534,16 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: wearos-build
+          name: phone-wearos-build
           path: artifacts
 
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.version.outputs.version }}
-          name: Wear OS test ${{ needs.version.outputs.version }} (Build ${{ needs.version.outputs.build_number }})
-          files: artifacts/discipulus_wearos-debug.apk
+          name: Phone & Wear OS test ${{ needs.version.outputs.version }} (Build ${{ needs.version.outputs.build_number }})
+          files: |
+            artifacts/discipulus_phone-debug.apk
+            artifacts/discipulus_wearos-debug.apk
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
