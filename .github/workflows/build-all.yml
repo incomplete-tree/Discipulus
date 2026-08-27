@@ -380,11 +380,11 @@ jobs:
             -PversionName=${{ needs.version.outputs.version }} \
             -PversionCode=${{ needs.version.outputs.build_number }}
           mkdir -p build/wearos
-          cp "$(find android/wear/build/outputs/apk/debug -name '*.apk' -print -quit)" \
+          cp "$(find build/wear/outputs/apk/debug -name '*.apk' -print -quit)" \
             build/wearos/${{ env.APP_NAME }}_wearos-debug.apk
-          cp "$(find android/wear/build/outputs/apk/release -name '*.apk' -print -quit)" \
+          cp "$(find build/wear/outputs/apk/release -name '*.apk' -print -quit)" \
             build/wearos/${{ env.APP_NAME }}_wearos.apk
-          cp "$(find android/wear/build/outputs/bundle/release -name '*.aab' -print -quit)" \
+          cp "$(find build/wear/outputs/bundle/release -name '*.aab' -print -quit)" \
             build/wearos/${{ env.APP_NAME }}_wearos.aab
 
       - name: Build Linux Desktop
@@ -508,7 +508,7 @@ jobs:
             -PversionName=${{ needs.version.outputs.version }} \
             -PversionCode=${{ needs.version.outputs.build_number }}
           mkdir -p build/wearos
-          cp "$(find android/wear/build/outputs/apk/debug -name '*.apk' -print -quit)" \
+          cp "$(find build/wear/outputs/apk/debug -name '*.apk' -print -quit)" \
             build/wearos/${{ env.APP_NAME }}_wearos-debug.apk
 
       - uses: actions/upload-artifact@v4
