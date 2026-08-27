@@ -103,8 +103,6 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
     fun setShowCancelledLessons(value: Boolean) {
         _showCancelledLessons.value = value
         prefs.edit().putBoolean("show_cancelled_lessons", value).apply()
-        updateCurrentEvent()
-        scheduleReminders()
     }
 
     fun setHapticsEnabled(value: Boolean) {
@@ -123,7 +121,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
         val currentSchedule = _schedule.value.toMutableMap()
         var updatedEvent: ScheduleEvent? = null
         for ((key, events) in currentSchedule) {
-            val index = events.indexOfFirst { it.id == id && !it.isCanceled }
+            val index = events.indexOfFirst { it.id == id }
             if (index != -1) {
                 val event = events[index]
                 val toggled = event.copy(isCompleted = !event.isCompleted)
