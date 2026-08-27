@@ -499,6 +499,14 @@ jobs:
 
       - name: Build debug phone and Wear OS APKs
         run: |
+          keytool -genkeypair -v -keystore "$RUNNER_TEMP/wear-test.jks" \
+            -storepass android -keypass android -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+          export WEAR_TEST_KEYSTORE_PATH="$RUNNER_TEMP/wear-test.jks"
+          export WEAR_TEST_KEYSTORE_PASSWORD=android
+          export WEAR_TEST_KEY_ALIAS=androiddebugkey
+          export WEAR_TEST_KEY_PASSWORD=android
           flutter pub get
           CI=false flutter build apk --debug --android-skip-build-dependency-validation \
             --build-name=${{ needs.version.outputs.version }} \
