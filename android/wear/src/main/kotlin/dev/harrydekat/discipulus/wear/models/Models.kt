@@ -15,7 +15,8 @@ data class ScheduleEvent(
     val endHourIndicator: Int?,
     val startTime: Date,
     val endTime: Date,
-    val isCompleted: Boolean
+    val isCompleted: Boolean,
+    val isCanceled: Boolean = false
 ) : Serializable {
     companion object {
         fun fromJson(json: JSONObject): ScheduleEvent? {
@@ -44,7 +45,8 @@ data class ScheduleEvent(
                     endHourIndicator = endHourIndicator,
                     startTime = Date(startMs),
                     endTime = Date(endMs),
-                    isCompleted = json.optBoolean("isCompleted", false)
+                    isCompleted = json.optBoolean("isCompleted", false),
+                    isCanceled = json.optBoolean("isCanceled", false)
                 )
             } catch (e: Exception) {
                 return null

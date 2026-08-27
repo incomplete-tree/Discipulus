@@ -52,6 +52,11 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
     private val _showBreakSeparators = MutableStateFlow(prefs.getBoolean("show_break_separators", true))
     val showBreakSeparators: StateFlow<Boolean> = _showBreakSeparators.asStateFlow()
 
+    private val _showCancelledLessons = MutableStateFlow(
+        prefs.getBoolean("show_cancelled_lessons", false)
+    )
+    val showCancelledLessons: StateFlow<Boolean> = _showCancelledLessons.asStateFlow()
+
     private val _hapticsEnabled = MutableStateFlow(prefs.getBoolean("haptics_enabled", true))
     val hapticsEnabled: StateFlow<Boolean> = _hapticsEnabled.asStateFlow()
 
@@ -95,6 +100,13 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
         prefs.edit().putBoolean("show_break_separators", value).apply()
     }
 
+    fun setShowCancelledLessons(value: Boolean) {
+        _showCancelledLessons.value = value
+        prefs.edit().putBoolean("show_cancelled_lessons", value).apply()
+        updateCurrentEvent()
+        scheduleReminders()
+    }
+
     fun setHapticsEnabled(value: Boolean) {
         _hapticsEnabled.value = value
         prefs.edit().putBoolean("haptics_enabled", value).apply()
@@ -111,7 +123,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
         val currentSchedule = _schedule.value.toMutableMap()
         var updatedEvent: ScheduleEvent? = null
         for ((key, events) in currentSchedule) {
-            val index = events.indexOfFirst { it.id == id }
+            val index = events.indexOfFirst { it.id == id && !it.isCanceled }
             if (index != -1) {
                 val event = events[index]
                 val toggled = event.copy(isCompleted = !event.isCompleted)
@@ -139,7 +151,9 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
 
     fun updateCurrentEvent() {
         val now = java.util.Date()
-        val allEvents = _schedule.value.values.flatten().sortedBy { it.startTime }
+        val allEvents = _schedule.value.values.flatten()
+            .filterNot { it.isCanceled }
+            .sortedBy { it.startTime }
 
         val current = allEvents.firstOrNull { it.startTime.time <= now.time && it.endTime.time > now.time }
         if (current != null) {
@@ -164,7 +178,9 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
         val context = getApplication<Application>()
         val now = java.util.Date()
         val allEvents = _schedule.value.values.flatten()
-        val upcomingEvents = allEvents.filter { it.startTime.after(now) && !it.isCompleted }
+        val upcomingEvents = allEvents.filter {
+            it.startTime.after(now) && !it.isCompleted && !it.isCanceled
+        }
 
         for (event in allEvents) {
             val intent = Intent(context, WearReminderReceiver::class.java)
