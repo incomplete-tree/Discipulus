@@ -27,6 +27,7 @@ import dev.harrydekat.discipulus.wear.viewmodel.WearViewModel
 class WearAppActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val startDestination = intent.getStringExtra("destination") ?: "home"
         setContent {
             MaterialTheme {
                 val navController = rememberSwipeDismissableNavController()
@@ -39,7 +40,7 @@ class WearAppActivity : ComponentActivity() {
                 ) {
                     SwipeDismissableNavHost(
                         navController = navController,
-                        startDestination = "home",
+                        startDestination = startDestination,
                         modifier = Modifier
                             .fillMaxSize()
                             .background(MaterialTheme.colorScheme.background)

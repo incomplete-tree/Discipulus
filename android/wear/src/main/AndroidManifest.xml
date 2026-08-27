@@ -41,7 +41,7 @@
             </intent-filter>
             <meta-data
                 android:name="android.support.wearable.complications.SUPPORTED_TYPES"
-                android:value="SHORT_TEXT,LONG_TEXT,RANGED_VALUE,MONOCHROMATIC_IMAGE,SMALL_IMAGE,PHOTO_IMAGE,GOAL_PROGRESS,WEIGHTED_ELEMENTS" />
+                android:value="SHORT_TEXT,LONG_TEXT,RANGED_TEXT,ICON,SMALL_IMAGE,LARGE_IMAGE,GOAL_PROGRESS,WEIGHTED_ELEMENTS" />
             <meta-data
                 android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
                 android:value="300" />
@@ -58,7 +58,7 @@
             </intent-filter>
             <meta-data
                 android:name="android.support.wearable.complications.SUPPORTED_TYPES"
-                android:value="SHORT_TEXT,LONG_TEXT,RANGED_VALUE,MONOCHROMATIC_IMAGE,SMALL_IMAGE,PHOTO_IMAGE,GOAL_PROGRESS,WEIGHTED_ELEMENTS" />
+                android:value="SHORT_TEXT,LONG_TEXT,RANGED_TEXT,ICON,SMALL_IMAGE,LARGE_IMAGE,GOAL_PROGRESS,WEIGHTED_ELEMENTS" />
             <meta-data
                 android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
                 android:value="300" />
