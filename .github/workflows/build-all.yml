@@ -504,7 +504,7 @@ jobs:
             https://services.gradle.org/distributions/gradle-8.14.3-bin.zip \
             --output "$RUNNER_TEMP/gradle-8.14.3-bin.zip"
           unzip -q "$RUNNER_TEMP/gradle-8.14.3-bin.zip" -d "$RUNNER_TEMP"
-          "$RUNNER_TEMP/gradle-8.14.3/bin/gradle" -p android :wear:assembleDebug \
+          CI=false "$RUNNER_TEMP/gradle-8.14.3/bin/gradle" -p android :wear:assembleDebug \
             -PversionName=${{ needs.version.outputs.version }} \
             -PversionCode=${{ needs.version.outputs.build_number }}
           mkdir -p build/wearos
