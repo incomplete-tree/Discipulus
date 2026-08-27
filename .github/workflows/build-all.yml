@@ -363,13 +363,22 @@ jobs:
 
       - name: Build Wear OS APK & App Bundle (AAB)
         run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew :wear:assembleRelease :wear:bundleRelease -PversionName=${{ needs.version.outputs.version }} -PversionCode=${{ needs.version.outputs.build_number }} || true
-          cd ..
+          printf 'sdk.dir=%s\nflutter.sdk=%s\n' "$ANDROID_HOME" "$FLUTTER_ROOT" > android/local.properties
+          curl --fail --location --retry 3 --silent --show-error \
+            https://services.gradle.org/distributions/gradle-8.14.3-bin.zip \
+            --output "$RUNNER_TEMP/gradle-8.14.3-bin.zip"
+          unzip -q "$RUNNER_TEMP/gradle-8.14.3-bin.zip" -d "$RUNNER_TEMP"
+          "$RUNNER_TEMP/gradle-8.14.3/bin/gradle" -p android \
+            :wear:assembleDebug :wear:assembleRelease :wear:bundleRelease \
+            -PversionName=${{ needs.version.outputs.version }} \
+            -PversionCode=${{ needs.version.outputs.build_number }}
           mkdir -p build/wearos
-          find build/wear android/wear build -type f -name "*wear*.apk" -exec cp {} ./${{ env.APP_NAME }}_wearos.apk \; 2>/dev/null || true
-          find build/wear android/wear build -type f -name "*wear*.aab" -exec cp {} ./${{ env.APP_NAME }}_wearos.aab \; 2>/dev/null || true
+          cp android/wear/build/outputs/apk/debug/wear-debug.apk \
+            build/wearos/${{ env.APP_NAME }}_wearos-debug.apk
+          cp android/wear/build/outputs/apk/release/wear-release.apk \
+            build/wearos/${{ env.APP_NAME }}_wearos.apk
+          cp android/wear/build/outputs/bundle/release/wear-release.aab \
+            build/wearos/${{ env.APP_NAME }}_wearos.aab
 
       - name: Build Linux Desktop
         run: |
@@ -456,12 +465,7 @@ jobs:
           path: |
             build/app/outputs/flutter-apk/*.apk
             build/app/outputs/bundle/release/*.aab
-            build/wear/outputs/apk/release/*.apk
-            android/wear/build/outputs/apk/release/*.apk
-            build/wear/outputs/bundle/release/*.aab
-            android/wear/build/outputs/bundle/release/*.aab
-            ${{ env.APP_NAME }}_wearos.apk
-            ${{ env.APP_NAME }}_wearos.aab
+            build/wearos/*
             ${{ env.APP_NAME }}_linux.tar.gz
             *.flatpak
 
