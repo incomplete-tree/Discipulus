@@ -19,10 +19,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
-    }
-
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "dev.harrydekat.discipulus"
@@ -44,10 +40,19 @@ android {
     signingConfigs {
         create("release") {
             if (System.getenv("CI") == "true") { // CI=true is exported by Codemagic
-                storeFile = file(System.getenv("CM_KEYSTORE_PATH"))
-                storePassword = System.getenv("CM_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("CM_KEY_ALIAS")
-                keyPassword = System.getenv("CM_KEY_PASSWORD")
+                val keystorePath = System.getenv("CM_KEYSTORE_PATH")
+                val keystorePassword = System.getenv("CM_KEYSTORE_PASSWORD")
+                val keyAlias = System.getenv("CM_KEY_ALIAS")
+                val keyPassword = System.getenv("CM_KEY_PASSWORD")
+                if (keystorePath != null && keystorePassword != null &&
+                    keyAlias != null && keyPassword != null && file(keystorePath).exists()) {
+                    storeFile = file(keystorePath)
+                    storePassword = keystorePassword
+                    this.keyAlias = keyAlias
+                    this.keyPassword = keyPassword
+                } else {
+                    println("WARNING: CI keystore is unavailable. Release builds will use the debug key.")
+                }
             } else {
                 // Load from local.properties
                 if (keystoreProperties.containsKey("storeFile") &&
@@ -69,7 +74,8 @@ android {
     buildTypes {
         release {
             // Use the release signing config
-            signingConfig = if (System.getenv("CI") == "true") signingConfigs.getByName("release") else signingConfigs.getByName("debug")
+            val releaseSigning = signingConfigs.getByName("release")
+            signingConfig = if (releaseSigning.storeFile != null) releaseSigning else signingConfigs.getByName("debug")
             // You can add other release-specific settings here, like minification
             isMinifyEnabled = true
 
@@ -80,6 +86,12 @@ android {
         jniLibs {
             useLegacyPackaging = false
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
     }
 }
 
