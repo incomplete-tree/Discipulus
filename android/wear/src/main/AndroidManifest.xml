@@ -31,20 +31,73 @@
             android:exported="false" />
 
         <service
-            android:name=".services.NavigatorComplicationService"
+            android:name=".services.NextLessonComplicationService"
             android:exported="true"
             android:icon="@mipmap/ic_launcher"
-            android:label="Navigator"
+            android:label="Volgende les"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
             </intent-filter>
             <meta-data
                 android:name="android.support.wearable.complications.SUPPORTED_TYPES"
-                android:value="SHORT_TEXT,LONG_TEXT" />
+                android:value="SHORT_TEXT,LONG_TEXT,RANGED_TEXT,ICON,SMALL_IMAGE,LARGE_IMAGE,GOAL_PROGRESS,WEIGHTED_ELEMENTS" />
             <meta-data
                 android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
                 android:value="300" />
+        </service>
+
+        <service
+            android:name=".services.LatestGradeComplicationService"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="Laatste cijfer"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="SHORT_TEXT,LONG_TEXT,RANGED_TEXT,ICON,SMALL_IMAGE,LARGE_IMAGE,GOAL_PROGRESS,WEIGHTED_ELEMENTS" />
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="300" />
+        </service>
+
+        <service
+            android:name=".services.CalendarTileService"
+            android:description="@string/tile_calendar_description"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="Agenda"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".services.GradesTileService"
+            android:description="@string/tile_grades_description"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="Cijfers"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".services.MessagesTileService"
+            android:description="@string/tile_messages_description"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="Berichten"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
         </service>
 
         <meta-data

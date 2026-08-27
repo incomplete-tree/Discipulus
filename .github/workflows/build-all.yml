@@ -11,6 +11,11 @@ on:
         description: 'Build number (e.g., 1)'
         required: false
         default: '1'
+      wear_only:
+        description: 'Build and publish only the Wear OS test APK'
+        required: false
+        type: boolean
+        default: false
 
 env:
   APP_NAME: discipulus
@@ -32,6 +37,7 @@ jobs:
 
   build-apple:
     name: Apple Platforms (iOS, macOS, watchOS)
+    if: ${{ !inputs.wear_only }}
     needs: version
     runs-on: macos-latest
     steps:
@@ -258,6 +264,7 @@ jobs:
 
   build-android-linux:
     name: Android, Wear OS & Linux
+    if: ${{ !inputs.wear_only }}
     needs: version
     runs-on: ubuntu-latest
     steps:
@@ -363,13 +370,22 @@ jobs:
 
       - name: Build Wear OS APK & App Bundle (AAB)
         run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew :wear:assembleRelease :wear:bundleRelease -PversionName=${{ needs.version.outputs.version }} -PversionCode=${{ needs.version.outputs.build_number }} || true
-          cd ..
+          printf 'sdk.dir=%s\nflutter.sdk=%s\n' "$ANDROID_HOME" "$FLUTTER_ROOT" > android/local.properties
+          curl --fail --location --retry 3 --silent --show-error \
+            https://services.gradle.org/distributions/gradle-8.14.3-bin.zip \
+            --output "$RUNNER_TEMP/gradle-8.14.3-bin.zip"
+          unzip -q "$RUNNER_TEMP/gradle-8.14.3-bin.zip" -d "$RUNNER_TEMP"
+          "$RUNNER_TEMP/gradle-8.14.3/bin/gradle" -p android \
+            :wear:assembleDebug :wear:assembleRelease :wear:bundleRelease \
+            -PversionName=${{ needs.version.outputs.version }} \
+            -PversionCode=${{ needs.version.outputs.build_number }}
           mkdir -p build/wearos
-          find build/wear android/wear build -type f -name "*wear*.apk" -exec cp {} ./${{ env.APP_NAME }}_wearos.apk \; 2>/dev/null || true
-          find build/wear android/wear build -type f -name "*wear*.aab" -exec cp {} ./${{ env.APP_NAME }}_wearos.aab \; 2>/dev/null || true
+          cp "$(find build/wear/outputs/apk/debug -name '*.apk' -print -quit)" \
+            build/wearos/${{ env.APP_NAME }}_wearos-debug.apk
+          cp "$(find build/wear/outputs/apk/release -name '*.apk' -print -quit)" \
+            build/wearos/${{ env.APP_NAME }}_wearos.apk
+          cp "$(find build/wear/outputs/bundle/release -name '*.aab' -print -quit)" \
+            build/wearos/${{ env.APP_NAME }}_wearos.aab
 
       - name: Build Linux Desktop
         run: |
@@ -456,17 +472,93 @@ jobs:
           path: |
             build/app/outputs/flutter-apk/*.apk
             build/app/outputs/bundle/release/*.aab
-            build/wear/outputs/apk/release/*.apk
-            android/wear/build/outputs/apk/release/*.apk
-            build/wear/outputs/bundle/release/*.aab
-            android/wear/build/outputs/bundle/release/*.aab
-            ${{ env.APP_NAME }}_wearos.apk
-            ${{ env.APP_NAME }}_wearos.aab
+            build/wearos/*
             ${{ env.APP_NAME }}_linux.tar.gz
             *.flatpak
 
+  build-wear:
+    name: Phone & Wear OS test APKs
+    if: ${{ inputs.wear_only }}
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Build debug phone and Wear OS APKs
+        run: |
+          keytool -genkeypair -v -keystore "$RUNNER_TEMP/wear-test.jks" \
+            -storepass android -keypass android -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+          export WEAR_TEST_KEYSTORE_PATH="$RUNNER_TEMP/wear-test.jks"
+          export WEAR_TEST_KEYSTORE_PASSWORD=android
+          export WEAR_TEST_KEY_ALIAS=androiddebugkey
+          export WEAR_TEST_KEY_PASSWORD=android
+          flutter pub get
+          CI=false flutter build apk --debug --android-skip-build-dependency-validation \
+            --build-name=${{ needs.version.outputs.version }} \
+            --build-number=${{ needs.version.outputs.build_number }}
+          printf 'sdk.dir=%s\nflutter.sdk=%s\n' "$ANDROID_HOME" "$FLUTTER_ROOT" > android/local.properties
+          curl --fail --location --retry 3 --silent --show-error \
+            https://services.gradle.org/distributions/gradle-8.14.3-bin.zip \
+            --output "$RUNNER_TEMP/gradle-8.14.3-bin.zip"
+          unzip -q "$RUNNER_TEMP/gradle-8.14.3-bin.zip" -d "$RUNNER_TEMP"
+          CI=false "$RUNNER_TEMP/gradle-8.14.3/bin/gradle" -p android :wear:assembleDebug \
+            -PversionName=${{ needs.version.outputs.version }} \
+            -PversionCode=${{ needs.version.outputs.build_number }}
+          mkdir -p build/wearos
+          cp build/app/outputs/flutter-apk/app-debug.apk \
+            build/wearos/${{ env.APP_NAME }}_phone-debug.apk
+          cp "$(find build/wear/outputs/apk/debug -name '*.apk' -print -quit)" \
+            build/wearos/${{ env.APP_NAME }}_wearos-debug.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phone-wearos-build
+          path: |
+            build/wearos/${{ env.APP_NAME }}_phone-debug.apk
+            build/wearos/${{ env.APP_NAME }}_wearos-debug.apk
+
+  publish-wear-release:
+    name: Publish phone & Wear OS test release
+    if: ${{ inputs.wear_only }}
+    needs: [version, build-wear]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: phone-wearos-build
+          path: artifacts
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: Phone & Wear OS test ${{ needs.version.outputs.version }} (Build ${{ needs.version.outputs.build_number }})
+          files: |
+            artifacts/discipulus_phone-debug.apk
+            artifacts/discipulus_wearos-debug.apk
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build-windows:
     name: Windows (.exe & ZIP)
+    if: ${{ !inputs.wear_only }}
     needs: version
     runs-on: windows-latest
     steps:
@@ -513,6 +605,7 @@ jobs:
 
   create-release:
     name: Create GitHub Release
+    if: ${{ !inputs.wear_only }}
     needs: [version, build-apple, build-android-linux, build-windows]
     runs-on: ubuntu-latest
     permissions:

@@ -9,6 +9,7 @@ import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.Wearable
 import dev.harrydekat.discipulus.wear.models.ScheduleEvent
 import dev.harrydekat.discipulus.wear.models.SchoolYearData
+import dev.harrydekat.discipulus.wear.models.WatchMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,7 +30,11 @@ import android.content.Intent
 import android.content.ComponentName
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
 import dev.harrydekat.discipulus.wear.receivers.WearReminderReceiver
-import dev.harrydekat.discipulus.wear.services.NavigatorComplicationService
+import dev.harrydekat.discipulus.wear.services.CalendarTileService
+import dev.harrydekat.discipulus.wear.services.GradesTileService
+import dev.harrydekat.discipulus.wear.services.LatestGradeComplicationService
+import dev.harrydekat.discipulus.wear.services.MessagesTileService
+import dev.harrydekat.discipulus.wear.services.NextLessonComplicationService
 import dev.harrydekat.discipulus.wear.models.WatchGrade
 
 class WearViewModel(application: Application) : AndroidViewModel(application), MessageClient.OnMessageReceivedListener {
@@ -41,6 +46,9 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
 
     private val _schoolyears = MutableStateFlow<List<SchoolYearData>>(emptyList())
     val schoolyears: StateFlow<List<SchoolYearData>> = _schoolyears.asStateFlow()
+
+    private var messages: List<WatchMessage> = emptyList()
+    private var unreadMessages = 0
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -76,6 +84,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
         loadFromDisk()
         requestSchedule()
         requestGrades()
+        requestMessages()
 
         viewModelScope.launch {
             while (true) {
@@ -250,18 +259,32 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
         try {
             val scheduleBytes = serialize(_schedule.value)
             val schoolyearsBytes = serialize(_schoolyears.value)
+            val messagesBytes = serialize(messages)
             val scheduleBase64 = android.util.Base64.encodeToString(scheduleBytes, android.util.Base64.DEFAULT)
             val schoolyearsBase64 = android.util.Base64.encodeToString(schoolyearsBytes, android.util.Base64.DEFAULT)
+            val messagesBase64 = android.util.Base64.encodeToString(messagesBytes, android.util.Base64.DEFAULT)
             val editor = prefs.edit()
             editor.putString("cached_schedule", scheduleBase64)
             editor.putString("cached_schoolyears", schoolyearsBase64)
+            editor.putString("cached_messages", messagesBase64)
+            editor.putInt("cached_messages_unread", unreadMessages)
             _lastUpdate.value?.time?.let { editor.putLong("last_update", it) }
             editor.apply()
 
-            // Trigger Wear OS complication updates
-            val component = ComponentName(getApplication<Application>(), NavigatorComplicationService::class.java)
-            val requester = ComplicationDataSourceUpdateRequester.create(getApplication<Application>(), component)
-            requester.requestUpdateAll()
+            val context = getApplication<Application>()
+            listOf(
+                NextLessonComplicationService::class.java,
+                LatestGradeComplicationService::class.java,
+            ).forEach { service ->
+                ComplicationDataSourceUpdateRequester.create(context, ComponentName(context, service))
+                    .requestUpdateAll()
+            }
+            val tileUpdater = androidx.wear.tiles.TileService.getUpdater(context)
+            listOf(
+                CalendarTileService::class.java,
+                GradesTileService::class.java,
+                MessagesTileService::class.java,
+            ).forEach(tileUpdater::requestUpdate)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -271,6 +294,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
         try {
             val scheduleBase64 = prefs.getString("cached_schedule", null)
             val schoolyearsBase64 = prefs.getString("cached_schoolyears", null)
+            val messagesBase64 = prefs.getString("cached_messages", null)
             val lastUpdateTime = prefs.getLong("last_update", 0L)
             
             if (scheduleBase64 != null) {
@@ -289,6 +313,11 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
                     _schoolyears.value = list
                 }
             }
+            if (messagesBase64 != null) {
+                val bytes = android.util.Base64.decode(messagesBase64, android.util.Base64.DEFAULT)
+                (deserialize(bytes) as? List<WatchMessage>)?.let { messages = it }
+            }
+            unreadMessages = prefs.getInt("cached_messages_unread", 0)
             if (lastUpdateTime != 0L) {
                 _lastUpdate.value = java.util.Date(lastUpdateTime)
             }
@@ -305,9 +334,14 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
         sendMessageToPhone("watch_connectivity", mapOf("command" to "get_grades"))
     }
 
+    fun requestMessages() {
+        sendMessageToPhone("watch_connectivity", mapOf("command" to "get_messages"))
+    }
+
     fun refreshAll() {
         requestSchedule()
         requestGrades()
+        requestMessages()
     }
 
     @SuppressLint("VisibleForTests")
@@ -361,6 +395,18 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
                         SchoolYearData.fromJson(syJson)?.let { syList.add(it) }
                     }
                     _schoolyears.value = syList
+                    _lastUpdate.value = java.util.Date()
+                    saveToDisk()
+                    _isLoading.value = false
+                } else if (type == "messages") {
+                    val dataObj = json.optJSONObject("data") ?: JSONObject()
+                    val incomingMessages = mutableListOf<WatchMessage>()
+                    val array = dataObj.optJSONArray("messages") ?: JSONArray()
+                    for (i in 0 until array.length()) {
+                        WatchMessage.fromJson(array.optJSONObject(i) ?: continue)?.let(incomingMessages::add)
+                    }
+                    messages = incomingMessages
+                    unreadMessages = dataObj.optInt("unread", 0)
                     _lastUpdate.value = java.util.Date()
                     saveToDisk()
                     _isLoading.value = false
