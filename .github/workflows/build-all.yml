@@ -500,7 +500,7 @@ jobs:
       - name: Build debug phone and Wear OS APKs
         run: |
           flutter pub get
-          flutter build apk --debug --android-skip-build-dependency-validation \
+          CI=false flutter build apk --debug --android-skip-build-dependency-validation \
             --build-name=${{ needs.version.outputs.version }} \
             --build-number=${{ needs.version.outputs.build_number }}
           printf 'sdk.dir=%s\nflutter.sdk=%s\n' "$ANDROID_HOME" "$FLUTTER_ROOT" > android/local.properties
