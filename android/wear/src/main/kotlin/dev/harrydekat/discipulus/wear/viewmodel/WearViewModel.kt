@@ -150,7 +150,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
     fun updateCurrentEvent() {
         val now = java.util.Date()
         val allEvents = _schedule.value.values.flatten()
-            .filterNot { it.isCanceled }
+            .filterNot { it.status in 4..5 }
             .sortedBy { it.startTime }
 
         val current = allEvents.firstOrNull { it.startTime.time <= now.time && it.endTime.time > now.time }
@@ -177,7 +177,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application), M
         val now = java.util.Date()
         val allEvents = _schedule.value.values.flatten()
         val upcomingEvents = allEvents.filter {
-            it.startTime.after(now) && !it.isCompleted && !it.isCanceled
+            it.startTime.after(now) && !it.isCompleted && it.status !in 4..5
         }
 
         for (event in allEvents) {

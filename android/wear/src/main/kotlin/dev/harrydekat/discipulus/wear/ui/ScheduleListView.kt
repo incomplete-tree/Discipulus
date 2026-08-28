@@ -34,7 +34,7 @@ fun ScheduleListView(viewModel: WearViewModel) {
     val listState = rememberScalingLazyListState()
     val visibleSchedule = schedule
         .mapValues { (_, events) ->
-            if (showCancelledLessons) events else events.filterNot { it.isCanceled }
+            if (showCancelledLessons) events else events.filterNot { it.status in 4..5 }
         }
         .filterValues { it.isNotEmpty() }
 
@@ -137,7 +137,7 @@ fun BreakRow(durationMinutes: Int) {
 fun EventCard(event: ScheduleEvent, onClick: () -> Unit) {
     // Only treat the event as completed if it is actually a homework task (infoType == 1)
     val isCompleted = event.isCompleted && event.infoType == 1
-    val isCanceled = event.isCanceled
+    val isCanceled = event.status in 4..5
 
     val containerColor = when {
         isCanceled -> MaterialTheme.colorScheme.errorContainer
