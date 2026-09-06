@@ -6,15 +6,12 @@
     android:padding="8dp"
     android:background="@drawable/widget_background">
 
-    <TextView
+    <ImageView
         android:id="@+id/location_circle"
         android:layout_width="44dp"
         android:layout_height="44dp"
         android:background="@drawable/circle_background"
-        android:gravity="center"
-        android:textColor="#FFFFFF"
-        android:textSize="14sp"
-        android:textStyle="bold"/>
+        android:scaleType="centerInside" />
 
     <LinearLayout
         android:layout_width="0dp"

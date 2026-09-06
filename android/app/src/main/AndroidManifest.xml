@@ -57,7 +57,7 @@
             </intent-filter>
         </activity>
 
-        <!-- <receiver android:name=".NavigatorWidgetProvider"
+        <receiver android:name=".NavigatorWidgetProvider"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -65,7 +65,7 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/navigator_widget_info" />
-        </receiver> -->
+        </receiver>
 
         <!-- Aicore -->
         <uses-library android:name="com.google.android.aicore" android:required="false" />

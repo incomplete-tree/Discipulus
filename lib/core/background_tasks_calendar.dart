@@ -85,10 +85,8 @@ class _NotificationContent {
 
 Future<void> _quickRefreshCalendar(
     Profile profile, bool enableNotifications) async {
-  if (!enableNotifications) return;
-
   final changes = await _detectScheduleChanges(profile);
-  if (changes.isEmpty) return;
+  if (changes.isEmpty || !enableNotifications) return;
 
   if (changes.length > 3) {
     await _sendSummaryNotification(profile, changes.length);
