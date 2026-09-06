@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Discipulus</string>
+    <string name="tile_calendar_description">Agenda voor je volgende les</string>
+    <string name="tile_grades_description">Je recente cijfers en gemiddelde</string>
+    <string name="tile_messages_description">Je recente schoolberichten</string>
 </resources>

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:discipulus/api/models/calendar.dart';
 import 'package:discipulus/api/models/grades.dart';
+import 'package:discipulus/api/models/messages.dart';
 import 'package:discipulus/api/models/schoolyears.dart';
 import 'package:discipulus/main.dart';
 import 'package:discipulus/models/account.dart';
@@ -43,6 +44,8 @@ class WatchService with WidgetsBindingObserver {
         _sendSchedule();
       } else if (message['command'] == 'get_grades') {
         _sendRecentGrades();
+      } else if (message['command'] == 'get_messages') {
+        _sendRecentMessages();
       }
     });
 
@@ -62,6 +65,7 @@ class WatchService with WidgetsBindingObserver {
     await Future.wait([
       _sendSchedule(profile),
       _sendRecentGrades(profile),
+      _sendRecentMessages(profile),
     ]);
   }
 
@@ -165,6 +169,39 @@ class WatchService with WidgetsBindingObserver {
     await _watch.sendMessage({
       'type': 'grades',
       'data': schoolyearsData,
+    });
+    _updateSyncTime();
+  }
+
+  Future<void> _sendRecentMessages([Profile? targetProfile]) async {
+    final profile = targetProfile ?? activeProfileNullable;
+    if (profile == null) return;
+
+    final inbox = await profile.berichtMappen.filter().idEqualTo(1).findFirst();
+    final messages = inbox == null
+        ? <Bericht>[]
+        : await inbox.berichten
+            .filter()
+            .sortByVerzondenOpDesc()
+            .limit(20)
+            .findAll();
+
+    await _watch.sendMessage({
+      'type': 'messages',
+      'data': {
+        'unread': inbox?.aantalOngelezen ?? 0,
+        'messages': messages
+            .map(
+              (message) => {
+                'id': message.id.toString(),
+                'sender': message.afzender?.naam ?? 'Bericht',
+                'subject': message.onderwerp ?? 'Zonder onderwerp',
+                'read': message.isGelezen,
+                'date': message.verzondenOp.millisecondsSinceEpoch,
+              },
+            )
+            .toList(),
+      },
     });
     _updateSyncTime();
   }

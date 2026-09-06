@@ -42,6 +42,15 @@ android {
     }
 
     signingConfigs {
+        getByName("debug") {
+            val testKeystorePath = System.getenv("WEAR_TEST_KEYSTORE_PATH")
+            if (testKeystorePath != null && file(testKeystorePath).exists()) {
+                storeFile = file(testKeystorePath)
+                storePassword = System.getenv("WEAR_TEST_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("WEAR_TEST_KEY_ALIAS")
+                keyPassword = System.getenv("WEAR_TEST_KEY_PASSWORD")
+            }
+        }
         create("release") {
             if (System.getenv("CI") == "true") { // CI=true is exported by Codemagic
                 storeFile = file(System.getenv("CM_KEYSTORE_PATH"))

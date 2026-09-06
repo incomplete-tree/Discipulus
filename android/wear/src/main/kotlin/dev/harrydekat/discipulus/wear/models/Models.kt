@@ -138,3 +138,26 @@ data class SchoolYearData(
         }
     }
 }
+
+data class WatchMessage(
+    val id: String,
+    val sender: String,
+    val subject: String,
+    val isRead: Boolean,
+    val date: Date?
+) : Serializable {
+    companion object {
+        fun fromJson(json: JSONObject): WatchMessage? = try {
+            val dateMs = json.optLong("date", 0L)
+            WatchMessage(
+                id = json.optString("id", "${json.optString("subject")}-${dateMs}"),
+                sender = json.optString("sender", "Bericht"),
+                subject = json.optString("subject", "Zonder onderwerp"),
+                isRead = json.optBoolean("read", true),
+                date = dateMs.takeIf { it > 0L }?.let(::Date),
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+}
