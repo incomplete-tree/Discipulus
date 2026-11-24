@@ -193,11 +193,14 @@ class CalendarGridLineLoader extends StatelessWidget {
               : Easing.emphasizedAccelerate,
           child: SizedBox(
             height: 3.0,
-            child: LinearProgressIndicator(
-              minHeight: 3.0,
-              backgroundColor: Colors.transparent,
-              valueColor: AlwaysStoppedAnimation(
-                theme.colorScheme.primary,
+            child: TickerMode(
+              enabled: isFetching,
+              child: LinearProgressIndicator(
+                minHeight: 3.0,
+                backgroundColor: Colors.transparent,
+                valueColor: AlwaysStoppedAnimation(
+                  theme.colorScheme.primary,
+                ),
               ),
             ),
           ),
